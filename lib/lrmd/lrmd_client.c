@@ -372,6 +372,7 @@ lrmd_tls_dispatch(gpointer userdata)
     }
 
     /* Next read the current buffer and see if there are any messages to handle. */
+	/* 受信pollを実行する */
     rc = crm_remote_ready(native->remote, 0);
     if (rc == 0) {
         /* nothing to read, see if any full messages are already in buffer. */
@@ -424,7 +425,7 @@ lrmd_poll(lrmd_t * lrmd, int timeout)
             if (native->pending_notify) {
                 return 1;
             }
-
+			/* 受信pollを実行する */
             return crm_remote_ready(native->remote, 0);
 #endif
         default:
@@ -2113,7 +2114,7 @@ lrmd_api_new(void)
 
     return new_lrmd;
 }
-
+/* リモート接続を生成する */
 lrmd_t *
 lrmd_remote_api_new(const char *nodename, const char *server, int port)
 {

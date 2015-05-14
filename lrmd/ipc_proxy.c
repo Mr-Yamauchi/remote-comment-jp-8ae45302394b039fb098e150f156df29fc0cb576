@@ -45,7 +45,7 @@ static qb_ipcs_service_t *stonith_ipcs = NULL;
 GHashTable *ipc_providers;
 /* ipc clients == things like cibadmin, crm_resource, connecting locally */
 GHashTable *ipc_clients;
-
+/* 疑似サーバのaccept処理 */
 static int32_t
 ipc_proxy_accept(qb_ipcs_connection_t * c, uid_t uid, gid_t gid, const char *ipc_channel)
 {
@@ -92,12 +92,13 @@ ipc_proxy_accept(qb_ipcs_connection_t * c, uid_t uid, gid_t gid, const char *ipc
     crm_xml_add(msg, F_LRMD_IPC_OP, "new");
     crm_xml_add(msg, F_LRMD_IPC_IPC_SERVER, ipc_channel);
     crm_xml_add(msg, F_LRMD_IPC_SESSION, client->id);
+    /* pacemaker_remoteからPacemakerノード(crmd)にメッセージを送信する */
     lrmd_server_send_notify(ipc_proxy, msg);
     free_xml(msg);
     crm_debug("created new ipc proxy with session id %s", client->id);
     return 0;
 }
-
+/* 各疑似サーバのaccept処理（共通ipc_proxy_acceptの実行) */
 static int32_t
 crmd_proxy_accept(qb_ipcs_connection_t * c, uid_t uid, gid_t gid)
 {
@@ -133,7 +134,7 @@ ipc_proxy_created(qb_ipcs_connection_t * c)
 {
     crm_trace("Connection %p", c);
 }
-/* pacemaker_remoteに到着したpacemakerノードからのpacemaker_remoteの稼働しているノードのクライアントに配送する */
+/* pacemaker_remoteに到着したpacemakerノードから応答をpacemaker_remoteの稼働しているノードのクライアントに配送する */
 void
 ipc_proxy_forward_client(crm_client_t *ipc_proxy, xmlNode *xml)
 {
@@ -147,6 +148,7 @@ ipc_proxy_forward_client(crm_client_t *ipc_proxy, xmlNode *xml)
         xmlNode *msg = create_xml_node(NULL, T_LRMD_IPC_PROXY);
         crm_xml_add(msg, F_LRMD_IPC_OP, "destroy");
         crm_xml_add(msg, F_LRMD_IPC_SESSION, session);
+        /* pacemaker_remoteからPacemakerノード(crmd)にdestroyメッセージを送信する */
         lrmd_server_send_notify(ipc_proxy, msg);
         free_xml(msg);
         return;
@@ -166,6 +168,7 @@ ipc_proxy_forward_client(crm_client_t *ipc_proxy, xmlNode *xml)
 
     if (safe_str_eq(msg_type, "event")) {
         crm_info("Sending event to %s", ipc_client->id);
+        /* イベントをクライアントに送信する */
         rc = crm_ipcs_send(ipc_client, 0, msg, crm_ipc_server_event);
 
     } else if (safe_str_eq(msg_type, "response")) {
@@ -173,6 +176,7 @@ ipc_proxy_forward_client(crm_client_t *ipc_proxy, xmlNode *xml)
 
         crm_element_value_int(xml, F_LRMD_IPC_MSG_ID, &msg_id);
         crm_info("Sending response to %d - %s", ipc_client->request_id, ipc_client->id);
+        /* 応答メッセージをクライアントに送信する */
         rc = crm_ipcs_send(ipc_client, msg_id, msg, FALSE);
 
         CRM_LOG_ASSERT(msg_id == ipc_client->request_id);
@@ -189,7 +193,7 @@ ipc_proxy_forward_client(crm_client_t *ipc_proxy, xmlNode *xml)
         crm_warn("IPC Proxy send to ipc client %s failed, rc = %d", ipc_client->id, rc);
     }
 }
-
+/* pacemaker_remoteノードでの、疑似サービスへのクライアントメッセージ処理 */
 static int32_t
 ipc_proxy_dispatch(qb_ipcs_connection_t * c, void *data, size_t size)
 {
@@ -231,7 +235,7 @@ ipc_proxy_dispatch(qb_ipcs_connection_t * c, void *data, size_t size)
      * in the crmd, allowing the crmd to process the messages async */
     set_bit(flags, crm_ipc_proxied);
     client->request_id = id;
-
+	/* クライアントのrequestをPacemakerノード(crmd)に送信する */
     msg = create_xml_node(NULL, T_LRMD_IPC_PROXY);
     crm_xml_add(msg, F_LRMD_IPC_OP, "request");
     crm_xml_add(msg, F_LRMD_IPC_SESSION, client->id);
@@ -264,6 +268,7 @@ ipc_proxy_closed(qb_ipcs_connection_t * c)
         xmlNode *msg = create_xml_node(NULL, T_LRMD_IPC_PROXY);
         crm_xml_add(msg, F_LRMD_IPC_OP, "destroy");
         crm_xml_add(msg, F_LRMD_IPC_SESSION, client->id);
+        /* pacemaker_remoteからPacemakerノード(crmd)にdestroyメッセージを送信する */
         lrmd_server_send_notify(ipc_proxy, msg);
         free_xml(msg);
     }
@@ -322,7 +327,7 @@ static struct qb_ipcs_service_handlers cib_proxy_callbacks_rw = {
     .connection_closed = ipc_proxy_closed,
     .connection_destroyed = ipc_proxy_destroy
 };
-
+/* ipc_providersハッシュテーブルへの登録 */
 void
 ipc_proxy_add_provider(crm_client_t *ipc_proxy)
 {
@@ -331,7 +336,7 @@ ipc_proxy_add_provider(crm_client_t *ipc_proxy)
     }
     g_hash_table_insert(ipc_providers, ipc_proxy->id, ipc_proxy);
 }
-
+/* ipc_providersハッシュテーブルからの削除 */
 void
 ipc_proxy_remove_provider(crm_client_t *ipc_proxy)
 {
@@ -392,7 +397,7 @@ ipc_proxy_init(void)
         crm_exit(DAEMON_RESPAWN_STOP);
     }
 }
-
+/* クリーンアップ */
 void
 ipc_proxy_cleanup(void)
 {

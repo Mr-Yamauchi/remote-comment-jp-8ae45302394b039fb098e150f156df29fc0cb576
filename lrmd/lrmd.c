@@ -380,7 +380,7 @@ send_reply(crm_client_t * client, int rc, uint32_t id, int call_id)
     crm_xml_add(reply, F_LRMD_ORIGIN, __FUNCTION__);
     crm_xml_add_int(reply, F_LRMD_RC, rc);
     crm_xml_add_int(reply, F_LRMD_CALLID, call_id);
-
+	/* pacemaker_remoteからクライアント、Pacemakerノード(crmd)にreplayメッセージを送信する */
     send_rc = lrmd_server_send_reply(client, id, reply);
 
     free_xml(reply);
@@ -1368,6 +1368,7 @@ process_lrmd_signon(crm_client_t * client, uint32_t id, xmlNode * request)
 
     crm_xml_add(reply, F_LRMD_OPERATION, CRM_OP_REGISTER);
     crm_xml_add(reply, F_LRMD_CLIENTID, client->id);
+    /* pacemaker_remoteからクライアント、Pacemakerノード(crmd)にreplayメッセージを送信する */
     lrmd_server_send_reply(client, id, reply);
 
     if (crm_is_true(is_ipc_provider)) {
@@ -1444,7 +1445,7 @@ process_lrmd_get_rsc_info(crm_client_t * client, uint32_t id, xmlNode * request)
         crm_xml_add(reply, F_LRMD_PROVIDER, rsc->provider);
         crm_xml_add(reply, F_LRMD_TYPE, rsc->type);
     }
-
+	/* pacemaker_remoteからクライアント、Pacemakerノード(crmd)にreplayメッセージを送信する */
     send_rc = lrmd_server_send_reply(client, id, reply);
 
     if (send_rc < 0) {
@@ -1622,7 +1623,7 @@ process_lrmd_rsc_cancel(crm_client_t * client, uint32_t id, xmlNode * request)
 
     return cancel_op(rsc_id, action, interval);
 }
-
+/* lrmdメッセージ受信処理 */
 void
 process_lrmd_message(crm_client_t * client, uint32_t id, xmlNode * request)
 {
@@ -1637,7 +1638,7 @@ process_lrmd_message(crm_client_t * client, uint32_t id, xmlNode * request)
 
     if (crm_str_eq(op, CRM_OP_IPC_FWD, TRUE)) {
 #ifdef SUPPORT_REMOTE
-		/* pacemaker_remoteに到着したpacemakerノードからのpacemaker_remoteの稼働しているノードのクライアントに配送する */
+		/* pacemaker_remoteに到着したpacemakerノードからメッセージをpacemaker_remoteの稼働しているノードのクライアントに配送する */
         ipc_proxy_forward_client(client, request);
 #endif
         do_reply = 1;

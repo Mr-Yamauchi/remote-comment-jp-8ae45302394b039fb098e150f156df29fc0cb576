@@ -443,6 +443,7 @@ crm_remote_parse_buffer(crm_remote_t * remote)
  * \retval positive, data is ready to be read
  * \retval negative, session has ended
  */
+/* 受信poll処理 */
 int
 crm_remote_ready(crm_remote_t * remote, int timeout /* ms */ )
 {
@@ -594,7 +595,7 @@ crm_remote_recv_once(crm_remote_t * remote)
  * \retval TRUE message read
  * \retval FALSE full message not read
  */
-
+/* remote受信処理 */
 gboolean
 crm_remote_recv(crm_remote_t * remote, int total_timeout /*ms */ , int *disconnected)
 {
@@ -615,6 +616,7 @@ crm_remote_recv(crm_remote_t * remote, int total_timeout /*ms */ , int *disconne
         /* read some more off the tls buffer if we still have time left. */
         crm_trace("waiting to receive remote msg, starting timeout %d, remaining_timeout %d",
                   total_timeout, remaining_timeout);
+		/* 受信pollを実行する */
         rc = crm_remote_ready(remote, remaining_timeout);
 
         if (rc == 0) {

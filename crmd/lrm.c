@@ -1888,7 +1888,7 @@ do_lrm_rsc_op(lrm_state_t * lrm_state, lrmd_rsc_info_t * rsc, const char *operat
             params = lrmd_key_value_add(params, key, value);
         }
     }
-
+	/* リモート、ローカルのRA実行処理 */
     call_id = lrm_state_exec(lrm_state,
                              rsc->id,
                              op->op_type,

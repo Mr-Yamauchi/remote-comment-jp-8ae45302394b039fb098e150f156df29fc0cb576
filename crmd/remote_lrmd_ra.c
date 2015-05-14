@@ -315,7 +315,7 @@ simple_remote_node_status(const char *node_name, xmlNode * parent, const char *s
 
     return state;
 }
-
+/* リモート接続opコールバック */
 void
 remote_lrm_op_callback(lrmd_event_data_t * op)
 {

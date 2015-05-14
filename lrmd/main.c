@@ -183,7 +183,7 @@ static struct qb_ipcs_service_handlers lrmd_ipc_callbacks = {
     .connection_closed = lrmd_ipc_closed,
     .connection_destroyed = lrmd_ipc_destroy
 };
-
+/* pacemaker_remoteからクライアント、Pacemakerノード(crmd)にreplayメッセージを送信する */
 int
 lrmd_server_send_reply(crm_client_t * client, uint32_t id, xmlNode * reply)
 {
@@ -191,9 +191,11 @@ lrmd_server_send_reply(crm_client_t * client, uint32_t id, xmlNode * reply)
     crm_trace("sending reply to client (%s) with msg id %d", client->id, id);
     switch (client->kind) {
         case CRM_CLIENT_IPC:
+            /* クライアントにメッセージを送信する */
             return crm_ipcs_send(client, id, reply, FALSE);
 #ifdef ENABLE_PCMK_REMOTE
         case CRM_CLIENT_TLS:
+            /* Pacemakerノード(crmd)にreplyメッセージを送信する */
             return lrmd_tls_send_msg(client->remote, reply, id, "reply");
 #endif
         default:
@@ -201,7 +203,7 @@ lrmd_server_send_reply(crm_client_t * client, uint32_t id, xmlNode * reply)
     }
     return -1;
 }
-
+/* pacemaker_remoteからクライアント、Pacemakerノード(crmd)にnotifyメッセージを送信する */
 int
 lrmd_server_send_notify(crm_client_t * client, xmlNode * msg)
 {
@@ -212,6 +214,7 @@ lrmd_server_send_notify(crm_client_t * client, xmlNode * msg)
                 crm_trace("Asked to send event to disconnected local client");
                 return -1;
             }
+            /* クライアントにnotifyメッセージを送信する */
             return crm_ipcs_send(client, 0, msg, crm_ipc_server_event);
 #ifdef ENABLE_PCMK_REMOTE
         case CRM_CLIENT_TLS:
@@ -219,6 +222,7 @@ lrmd_server_send_notify(crm_client_t * client, xmlNode * msg)
                 crm_trace("Asked to send event to disconnected remote client");
                 return -1;
             }
+            /* Pacemakerノード(crmd)にnotifyメッセージを送信する */
             return lrmd_tls_send_msg(client->remote, msg, 0, "notify");
 #endif
         default:

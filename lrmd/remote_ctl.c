@@ -509,6 +509,7 @@ main(int argc, char **argv)
         }
         proxy_table =
             g_hash_table_new_full(crm_strcase_hash, crm_strcase_equal, NULL, remote_proxy_free);
+		/* ÉäÉÇÅ[Égê⁄ë±Çê∂ê¨Ç∑ÇÈ */
         lrmd_conn = lrmd_remote_api_new(NULL, options.tls_host ? options.tls_host : "localhost", options.port);
         lrmd_internal_set_proxy_callback(lrmd_conn, NULL,  remote_proxy_cb);
     } else {

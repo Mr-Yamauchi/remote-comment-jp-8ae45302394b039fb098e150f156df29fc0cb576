@@ -437,7 +437,7 @@ crmd_proxy_dispatch(const char *session, xmlNode *msg)
 
     trigger_fsa(fsa_source);
 }
-
+/* リモートproxyからの通信コールバック処理 */
 static void
 remote_proxy_cb(lrmd_t *lrmd, void *userdata, xmlNode *msg)
 {
@@ -563,11 +563,14 @@ lrm_state_remote_connect_async(lrm_state_t * lrm_state, const char *server, int 
     int ret;
 
     if (!lrm_state->conn) {
+		/* リモート接続を生成する */
         lrm_state->conn = lrmd_remote_api_new(lrm_state->node_name, server, port);
         if (!lrm_state->conn) {
             return -1;
         }
+        /* リモート接続のopコールバックをセット */
         ((lrmd_t *) lrm_state->conn)->cmds->set_callback(lrm_state->conn, remote_lrm_op_callback);
+        /* リモートの疑似サービスからの要求コールバックをセット */
         lrmd_internal_set_proxy_callback(lrm_state->conn, lrm_state, remote_proxy_cb);
     }
 
@@ -642,7 +645,7 @@ lrm_state_get_rsc_info(lrm_state_t * lrm_state, const char *rsc_id, enum lrmd_ca
     return lrmd_copy_rsc_info(rsc);
 
 }
-
+/* リモート、ローカルのRA実行処理 */
 int
 lrm_state_exec(lrm_state_t * lrm_state, const char *rsc_id, const char *action, const char *userdata, int interval,     /* ms */
                int timeout,     /* ms */
@@ -654,8 +657,9 @@ lrm_state_exec(lrm_state_t * lrm_state, const char *rsc_id, const char *action, 
         lrmd_key_value_freeall(params);
         return -ENOTCONN;
     }
-
+	
     if (is_remote_lrmd_ra(NULL, NULL, rsc_id)) {
+		/* リモートのRA実行処理 */
         return remote_ra_exec(lrm_state,
                               rsc_id, action, userdata, interval, timeout, start_delay, params);
     }

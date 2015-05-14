@@ -57,7 +57,7 @@ lrmd_remote_client_msg(gpointer data)
     int disconnected = 0;
     xmlNode *request = NULL;
     crm_client_t *client = data;
-
+	/* TLSハンドシェイクの実行 */
     if (client->remote->tls_handshake_complete == FALSE) {
         int rc = 0;
 
@@ -82,16 +82,17 @@ lrmd_remote_client_msg(gpointer data)
         }
         return 0;
     }
-
+	/* 受信pollを実行する */
     rc = crm_remote_ready(client->remote, 0);
     if (rc == 0) {
+		/* 受信メッセージが無い場合 */
         /* no msg to read */
         return 0;
     } else if (rc < 0) {
         crm_info("Client disconnected during remote client read");
         return -1;
     }
-
+	/* remote受信処理 */
     crm_remote_recv(client->remote, -1, &disconnected);
 
     request = crm_remote_parse_buffer(client->remote);
@@ -223,7 +224,7 @@ lrmd_remote_listen(gpointer data)
         close(csock);
         return TRUE;
     }
-
+	/* セッションを生成 */
     session = create_psk_tls_session(csock, GNUTLS_SERVER, psk_cred_s);
     if (session == NULL) {
         crm_err("TLS session creation failed");
