@@ -42,8 +42,10 @@ static qb_ipcs_service_t *crmd_ipcs = NULL;
 static qb_ipcs_service_t *stonith_ipcs = NULL;
 
 /* ipc providers == crmd clients connecting from cluster nodes */
+/* pacemaker_remoteのTLSサーバに接続してきたpacemakerノードのcrmdクライアントを管理するハッシュテーブル */
 GHashTable *ipc_providers;
 /* ipc clients == things like cibadmin, crm_resource, connecting locally */
+/* pacemaker_remoteに接続してきたローカル(pacemaker_remoteノード)のクライアントを管理するハッシュテーブル */
 GHashTable *ipc_clients;
 /* 疑似サーバのaccept処理 */
 static int32_t
@@ -220,6 +222,7 @@ ipc_proxy_dispatch(qb_ipcs_connection_t * c, void *data, size_t size)
      * This function is receiving a request from connection
      * 1 and forwarding it to connection 2.
      */
+    /* クライアントからのメッセージを受信する */
     request = crm_ipcs_recv(client, data, size, &id, &flags);
 
     if (!request) {
@@ -372,7 +375,7 @@ ipc_proxy_remove_provider(crm_client_t *ipc_proxy)
     /* just frees the list, not the elements in the list */
     g_list_free(remove_these);
 }
-/* proxy処理を初期化 */
+/* proxy(remoteノードのクライアント要求を処理する疑似サーバ)処理を初期化 */
 void
 ipc_proxy_init(void)
 {

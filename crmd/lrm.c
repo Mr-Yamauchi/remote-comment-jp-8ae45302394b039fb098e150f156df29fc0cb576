@@ -253,7 +253,7 @@ lrm_op_callback(lrmd_event_data_t * op)
 
     lrm_state = lrm_state_find(nodename);
     CRM_ASSERT(lrm_state != NULL);
-
+	/* lrmdイベント処理 */
     process_lrm_event(lrm_state, op);
 }
 
@@ -1888,7 +1888,7 @@ do_lrm_rsc_op(lrm_state_t * lrm_state, lrmd_rsc_info_t * rsc, const char *operat
             params = lrmd_key_value_add(params, key, value);
         }
     }
-	/* リモート、ローカルのRA実行処理 */
+	/* リモート、ローカルのRA操作の実行処理(lrm_state_exec側で宛先を切り替えている) */
     call_id = lrm_state_exec(lrm_state,
                              rsc->id,
                              op->op_type,
@@ -2128,7 +2128,7 @@ do_lrm_event(long long action,
 {
     CRM_CHECK(FALSE, return);
 }
-
+/* lrmdからのイベント処理 */
 gboolean
 process_lrm_event(lrm_state_t * lrm_state, lrmd_event_data_t * op)
 {

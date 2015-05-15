@@ -443,7 +443,7 @@ crm_remote_parse_buffer(crm_remote_t * remote)
  * \retval positive, data is ready to be read
  * \retval negative, session has ended
  */
-/* 受信poll処理 */
+/* TLSクライアントからの受信データがあるかpollを実行する */
 int
 crm_remote_ready(crm_remote_t * remote, int timeout /* ms */ )
 {
@@ -486,7 +486,7 @@ crm_remote_ready(crm_remote_t * remote, int timeout /* ms */ )
                 timeout = 1000;
             }
         }
-
+		/* poll実行 */
         rc = poll(&fds, 1, timeout);
     } while (rc < 0 && errno == EINTR);
 
@@ -513,11 +513,13 @@ crm_remote_recv_once(crm_remote_t * remote)
 
     if(header) {
         /* Stop at the end of the current message */
+        /* ヘッダから受信データサイズを決定する */
         read_len = header->size_total;
     }
 
     /* automatically grow the buffer when needed */
     if(remote->buffer_size < read_len) {
+		/* 受信バッファサイズが受信データサイズに不足している場合は、受信バッファを拡張する */
            remote->buffer_size = 2 * read_len;
         crm_trace("Expanding buffer to %u bytes", remote->buffer_size);
 
@@ -527,6 +529,7 @@ crm_remote_recv_once(crm_remote_t * remote)
 
 #ifdef HAVE_GNUTLS_GNUTLS_H
     if (remote->tls_session) {
+		/* 受信バッファに受信データを積み上げる */
         rc = gnutls_record_recv(*(remote->tls_session),
                                 remote->buffer + remote->buffer_offset,
                                 remote->buffer_size - remote->buffer_offset);
@@ -578,9 +581,11 @@ crm_remote_recv_once(crm_remote_t * remote)
     header = crm_remote_header(remote);
     if(header) {
         if(remote->buffer_offset < header->size_total) {
+			/* 受信データ不足 */
             crm_trace("Read less than the advertised length: %u < %u bytes",
                       remote->buffer_offset, header->size_total);
         } else {
+			/* 受信完了 */
             crm_trace("Read full message of %u bytes", remote->buffer_offset);
             return remote->buffer_offset;
         }
@@ -595,7 +600,7 @@ crm_remote_recv_once(crm_remote_t * remote)
  * \retval TRUE message read
  * \retval FALSE full message not read
  */
-/* remote受信処理 */
+/* TLSクライアントからのデータ受信処理 */
 gboolean
 crm_remote_recv(crm_remote_t * remote, int total_timeout /*ms */ , int *disconnected)
 {
@@ -616,7 +621,7 @@ crm_remote_recv(crm_remote_t * remote, int total_timeout /*ms */ , int *disconne
         /* read some more off the tls buffer if we still have time left. */
         crm_trace("waiting to receive remote msg, starting timeout %d, remaining_timeout %d",
                   total_timeout, remaining_timeout);
-		/* 受信pollを実行する */
+		/* TLSクライアントからの受信データがあるかpollを実行する */
         rc = crm_remote_ready(remote, remaining_timeout);
 
         if (rc == 0) {
@@ -627,8 +632,10 @@ crm_remote_recv(crm_remote_t * remote, int total_timeout /*ms */ , int *disconne
             crm_debug("poll() failed: %s (%d)", pcmk_strerror(rc), rc);
 
         } else {
+			/* 受信データがある場合 */
             rc = crm_remote_recv_once(remote);
             if(rc > 0) {
+				/* 正常受信 */
                 return TRUE;
             } else if (rc < 0) {
                 crm_debug("recv() failed: %s (%d)", pcmk_strerror(rc), rc);
@@ -636,10 +643,11 @@ crm_remote_recv(crm_remote_t * remote, int total_timeout /*ms */ , int *disconne
         }
 
         if(rc == -ENOTCONN) {
+			/* クライアントとの接続が切れた */
             *disconnected = 1;
             return FALSE;
         }
-
+		/* タイムアウトを進める */
         remaining_timeout = remaining_timeout - ((time(NULL) - start) * 1000);
     }
 

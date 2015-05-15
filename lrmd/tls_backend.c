@@ -37,7 +37,7 @@
 #include <arpa/inet.h>
 
 #ifdef HAVE_GNUTLS_GNUTLS_H
-#  define LRMD_REMOTE_AUTH_TIMEOUT 10000
+#  define LRMD_REMOTE_AUTH_TIMEOUT 10000	/* TLS handshakeのタイムアウトは10s固定 */
 gnutls_psk_server_credentials_t psk_cred_s;
 gnutls_dh_params_t dh_params;
 static int ssock = -1;
@@ -57,13 +57,14 @@ lrmd_remote_client_msg(gpointer data)
     int disconnected = 0;
     xmlNode *request = NULL;
     crm_client_t *client = data;
-	/* TLSハンドシェイクの実行 */
+	/* TLSハンドシェイクが未完了の場合は、先に実行 */
     if (client->remote->tls_handshake_complete == FALSE) {
         int rc = 0;
 
         /* Muliple calls to handshake will be required, this callback
          * will be invoked once the client sends more handshake data. */
         do {
+			/* TLS handshakeの完了ループ */
             rc = gnutls_handshake(*client->remote->tls_session);
 
             if (rc < 0 && rc != GNUTLS_E_AGAIN) {
@@ -71,18 +72,19 @@ lrmd_remote_client_msg(gpointer data)
                 return -1;
             }
         } while (rc == GNUTLS_E_INTERRUPTED);
-
+		/* TLS handshakeが完了したら、接続タイムアウトタイマーを停止(削除)する */
         if (rc == 0) {
             crm_debug("Remote lrmd tls handshake completed");
-            client->remote->tls_handshake_complete = TRUE;
+            client->remote->tls_handshake_complete = TRUE;	/* 完了フラグセット */
             if (client->remote->auth_timeout) {
-                g_source_remove(client->remote->auth_timeout);
+                g_source_remove(client->remote->auth_timeout);	/* タイマー破棄 */
             }
-            client->remote->auth_timeout = 0;
+            client->remote->auth_timeout = 0;	/* タイマーIDリセット */
         }
+        /* TLS handshake完了で一旦終了 */
         return 0;
     }
-	/* 受信pollを実行する */
+	/* TLSクライアントからの受信データがあるかpollを実行する */
     rc = crm_remote_ready(client->remote, 0);
     if (rc == 0) {
 		/* 受信メッセージが無い場合 */
@@ -92,9 +94,9 @@ lrmd_remote_client_msg(gpointer data)
         crm_info("Client disconnected during remote client read");
         return -1;
     }
-	/* remote受信処理 */
+	/* TLSクライアントからのデータ受信処理 */
     crm_remote_recv(client->remote, -1, &disconnected);
-
+	/* 受信バッファをリクエストに変換する */
     request = crm_remote_parse_buffer(client->remote);
     while (request) {
         crm_element_value_int(request, F_LRMD_REMOTE_MSG_ID, &id);
@@ -115,11 +117,12 @@ lrmd_remote_client_msg(gpointer data)
         crm_xml_add(request, F_LRMD_CLIENTID, client->id);
         crm_xml_add(request, F_LRMD_CLIENTNAME, client->name);
         crm_xml_add_int(request, F_LRMD_CALLID, lrmd_call_id);
-		/* クライアントメッセージ処理(通常のlrmdと共通にメッセージを処理 */
+		/* lrmdメッセージ処理(通常のlrmdと共通にメッセージを処理 */
         process_lrmd_message(client, id, request);
         free_xml(request);
 
         /* process all the messages in the current buffer */
+        /* 受信バッファの次のリクエストがあれば取り出す */
         request = crm_remote_parse_buffer(client->remote);
     }
 
@@ -130,7 +133,7 @@ lrmd_remote_client_msg(gpointer data)
 
     return 0;
 }
-
+/* 接続クライアント切断処理 */
 static void
 lrmd_remote_client_destroy(gpointer user_data)
 {
@@ -168,7 +171,7 @@ lrmd_remote_client_destroy(gpointer user_data)
 
     return;
 }
-
+/* TLS handshake完了タイマーコールバック */
 static gboolean
 lrmd_auth_timeout_cb(gpointer data)
 {
@@ -177,16 +180,17 @@ lrmd_auth_timeout_cb(gpointer data)
     client->remote->auth_timeout = 0;
 
     if (client->remote->tls_handshake_complete == TRUE) {
+		/* ハンドシェイクが完了していれば、正常扱い */
         return FALSE;
-    }
-
+	}
+	/* 接続クライアント(fd)のコールバックデータを削除 */
     mainloop_del_fd(client->remote->source);
     client->remote->source = NULL;
     crm_err("Remote client authentication timed out");
 
     return FALSE;
 }
-/* TLS接続クライアントからのlisten処理 */
+/* TLS接続クライアントのlisten処理 */
 static int
 lrmd_remote_listen(gpointer data)
 {
@@ -203,6 +207,7 @@ lrmd_remote_listen(gpointer data)
     };
 
     /* accept the connection */
+    /* 接続許可 */
     laddr = sizeof(addr);
     memset(&addr, 0, sizeof(addr));
     csock = accept(ssock, (struct sockaddr *)&addr, &laddr);
@@ -231,12 +236,13 @@ lrmd_remote_listen(gpointer data)
         close(csock);
         return TRUE;
     }
-
+	/* クライアント情報を生成 */
     new_client = calloc(1, sizeof(crm_client_t));
     new_client->remote = calloc(1, sizeof(crm_remote_t));
     new_client->kind = CRM_CLIENT_TLS;
     new_client->remote->tls_session = session;
     new_client->id = crm_generate_uuid();
+    /* ハンドシェイクタイムアウトタイマーを実行 */
     new_client->remote->auth_timeout =
         g_timeout_add(LRMD_REMOTE_AUTH_TIMEOUT, lrmd_auth_timeout_cb, new_client);
     crm_notice("LRMD client connection established. %p id: %s", new_client, new_client->id);
@@ -244,6 +250,7 @@ lrmd_remote_listen(gpointer data)
     new_client->remote->source =
         mainloop_add_fd("lrmd-remote-client", G_PRIORITY_DEFAULT, csock, new_client,
                         &lrmd_remote_fd_cb);
+    /* 接続クライアントをclient_connectionsハッシュテーブルに登録 */
     g_hash_table_insert(client_connections, new_client->id, new_client);
 
     /* Alert other clients of the new connection */
@@ -261,9 +268,10 @@ lrmd_remote_connection_destroy(gpointer user_data)
 static int
 lrmd_tls_server_key_cb(gnutls_session_t session, const char *username, gnutls_datum_t * key)
 {
+	/* authkey(***REMOTE_KEY_LOCATION)情報を取得する */
     return lrmd_tls_set_key(key);
 }
-
+/* 待ち受けのBINDとlisten */
 static int
 bind_and_listen(struct addrinfo *addr)
 {
@@ -282,7 +290,7 @@ bind_and_listen(struct addrinfo *addr)
     }
 
     crm_trace("Attempting to bind on address %s", buffer);
-
+	/* ソケット生成 */
     fd = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
     if (fd < 0) {
         return -1;
@@ -306,12 +314,12 @@ bind_and_listen(struct addrinfo *addr)
             return -1;
         }
     }
-
+	/* BIND実行 */
     if (bind(fd, addr->ai_addr, addr->ai_addrlen) != 0) {
         close(fd);
         return -1;
     }
-
+	/* LISTEN実行 */
     if (listen(fd, 10) == -1) {
         crm_err("Can not start listen on address %s", buffer);
         close(fd);
@@ -364,6 +372,7 @@ lrmd_init_remote_tls_server(int port)
     /* Try IPv6 addresses first, then IPv4 */
     while (iter) {
         if (iter->ai_family == filter) {
+			/* 待ち受けのBINDとlisten */
             ssock = bind_and_listen(iter);
         }
         if (ssock != -1) {
@@ -376,7 +385,7 @@ lrmd_init_remote_tls_server(int port)
             filter = AF_INET;
         }
     }
-
+	/* BIND/Listen完了 */
     if (ssock < 0) {
         crm_err("unable to bind to address");
         goto init_remote_cleanup;
@@ -394,7 +403,7 @@ lrmd_init_remote_tls_server(int port)
     return rc;
 
 }
-
+/* TLSサーバ処理破棄 */
 void
 lrmd_tls_server_destroy(void)
 {

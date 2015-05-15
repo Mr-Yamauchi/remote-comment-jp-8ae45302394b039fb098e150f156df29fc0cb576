@@ -388,7 +388,7 @@ send_reply(crm_client_t * client, int rc, uint32_t id, int call_id)
         crm_warn("LRMD reply to %s failed: %d", client->name, send_rc);
     }
 }
-
+/* クライアントにnotifyメッセージを送信する */
 static void
 send_client_notify(gpointer key, gpointer value, gpointer user_data)
 {
@@ -402,7 +402,7 @@ send_client_notify(gpointer key, gpointer value, gpointer user_data)
         crm_trace("Asked to send event to client with no name");
         return;
     }
-
+	/* クライアントにnotifyメッセージを送信する */
     if (lrmd_server_send_notify(client, update_msg) <= 0) {
         crm_warn("Notification of client %s/%s failed", client->name, client->id);
     }
@@ -460,7 +460,7 @@ cmd_original_times(lrmd_cmd_t * cmd)
     cmd->t_queue = cmd->t_first_queue;
 }
 #endif
-
+/* コマンド完了のnotfiyメッセージを送信する */
 static void
 send_cmd_complete_notify(lrmd_cmd_t * cmd)
 {
@@ -538,9 +538,11 @@ send_cmd_complete_notify(lrmd_cmd_t * cmd)
         crm_client_t *client = crm_client_get_by_id(cmd->client_id);
 
         if (client) {
+			/* クライアントにnotifyメッセージを送信する */
             send_client_notify(client->id, client, notify);
         }
     } else {
+		/* 全てのクライアントにnotifyメッセージを送信する */
         g_hash_table_foreach(client_connections, send_client_notify, notify);
     }
 
@@ -564,7 +566,7 @@ send_generic_notify(int rc, xmlNode * request)
     crm_xml_add_int(notify, F_LRMD_CALLID, call_id);
     crm_xml_add(notify, F_LRMD_OPERATION, op);
     crm_xml_add(notify, F_LRMD_RSC_ID, rsc_id);
-
+	/* 全てのクライアントにnotifyメッセージを送信する */
     g_hash_table_foreach(client_connections, send_client_notify, notify);
 
     free_xml(notify);
@@ -583,7 +585,7 @@ cmd_reset(lrmd_cmd_t * cmd)
     cmd->output = NULL;
 
 }
-
+/* コマンド最終処理 */
 static void
 cmd_finalize(lrmd_cmd_t * cmd, lrmd_rsc_t * rsc)
 {
@@ -601,7 +603,7 @@ cmd_finalize(lrmd_cmd_t * cmd, lrmd_rsc_t * rsc)
 
     /* reset original timeout so client notification has correct information */
     cmd->timeout = cmd->timeout_orig;
-
+	/* コマンド完了のnotfiyメッセージを送信する */
     send_cmd_complete_notify(cmd);
 
     if (cmd->interval && (cmd->lrmd_op_status == PCMK_LRM_OP_CANCELLED)) {
@@ -779,7 +781,7 @@ notify_of_new_client(crm_client_t *new_client)
         if (safe_str_eq(client->id, new_client->id)) {
             continue;
         }
-
+		/* 他のクライアントに追加のクライアント接続のnotifyメッセージを送信する */
         send_client_notify((gpointer) key, (gpointer) client, (gpointer) notify);
     }
     free_xml(notify);
@@ -989,7 +991,7 @@ action_complete(svc_action_t * action)
     } else if (action->stdout_data) {
         cmd->output = strdup(action->stdout_data);
     }
-
+	/* コマンド最終処理 */
     cmd_finalize(cmd, rsc);
 }
 
@@ -1039,7 +1041,7 @@ stonith_action_complete(lrmd_cmd_t * cmd, int rc)
         }
         cmd->stonith_recurring_id = g_timeout_add(cmd->interval, stonith_recurring_op_helper, cmd);
     }
-
+	/* コマンド最終処理 */
     cmd_finalize(cmd, rsc);
 }
 
@@ -1094,6 +1096,7 @@ lrmd_rsc_execute_stonith(lrmd_rsc_t * rsc, lrmd_cmd_t * cmd)
     if (!stonith_api) {
         cmd->exec_rc = get_uniform_rc("stonith", cmd->action, -ENOTCONN);
         cmd->lrmd_op_status = PCMK_LRM_OP_ERROR;
+		/* コマンド最終処理 */
         cmd_finalize(cmd, rsc);
         return -EUNATCH;
     }
@@ -1247,6 +1250,7 @@ lrmd_rsc_execute_service_lib(lrmd_rsc_t * rsc, lrmd_cmd_t * cmd)
     action = NULL;
 
   exec_done:
+	/* コマンド最終処理 */
     cmd_finalize(cmd, rsc);
     return TRUE;
 }
@@ -1323,6 +1327,7 @@ free_rsc(gpointer data)
 
         /* command was never executed */
         cmd->lrmd_op_status = PCMK_LRM_OP_CANCELLED;
+		/* コマンド最終処理 */
         cmd_finalize(cmd, NULL);
     }
     /* frees list, but not list elements. */
@@ -1333,6 +1338,7 @@ free_rsc(gpointer data)
 
         if (is_stonith) {
             cmd->lrmd_op_status = PCMK_LRM_OP_CANCELLED;
+			/* コマンド最終処理 */
             cmd_finalize(cmd, NULL);
         } else {
             /* This command is already handed off to service library,
@@ -1374,6 +1380,7 @@ process_lrmd_signon(crm_client_t * client, uint32_t id, xmlNode * request)
     if (crm_is_true(is_ipc_provider)) {
         /* this is a remote connection from a cluster nodes crmd */
 #ifdef SUPPORT_REMOTE
+		/* ipc_providersハッシュテーブルへの登録 */
         ipc_proxy_add_provider(client);
 #endif
     }
@@ -1538,6 +1545,7 @@ cancel_op(const char *rsc_id, const char *action, int interval)
 
         if (safe_str_eq(cmd->action, action) && cmd->interval == interval) {
             cmd->lrmd_op_status = PCMK_LRM_OP_CANCELLED;
+			/* コマンド最終処理 */
             cmd_finalize(cmd, rsc);
             return pcmk_ok;
         }
@@ -1552,6 +1560,7 @@ cancel_op(const char *rsc_id, const char *action, int interval)
             if (safe_str_eq(cmd->action, action) && cmd->interval == interval) {
                 cmd->lrmd_op_status = PCMK_LRM_OP_CANCELLED;
                 if (rsc->active != cmd) {
+					/* コマンド最終処理 */
                     cmd_finalize(cmd, rsc);
                 }
                 return pcmk_ok;

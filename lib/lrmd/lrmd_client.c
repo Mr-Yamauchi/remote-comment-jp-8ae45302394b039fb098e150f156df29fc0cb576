@@ -1049,7 +1049,7 @@ set_key(gnutls_datum_t * key, const char *location)
 
     return 0;
 }
-
+/* authkey(***REMOTE_KEY_LOCATION)î•ñ‚ğæ“¾‚·‚é */
 int
 lrmd_tls_set_key(gnutls_datum_t * key)
 {
@@ -1060,7 +1060,7 @@ lrmd_tls_set_key(gnutls_datum_t * key)
         crm_debug("Using custom authkey location %s", specific_location);
         return 0;
     }
-
+	/* /etc/pacemaker/authkey‚ğ“Ç‚İ‚Ş‚ªA–³‚¯‚ê‚ÎA/etc/corosync/authkey‚ğ“Ç‚İ‚Ş */
     if (set_key(key, DEFAULT_REMOTE_KEY_LOCATION)) {
         rc = set_key(key, ALT_REMOTE_KEY_LOCATION);
     }
@@ -1124,7 +1124,7 @@ lrmd_tcp_connect_cb(void *userdata, int sock)
     /* TODO continue with tls stuff now that tcp connect passed. make this async as well soon
      * to avoid all blocking code in the client. */
     native->sock = sock;
-
+	/* authkey(***REMOTE_KEY_LOCATION)î•ñ‚ğæ“¾‚·‚é */
     if (lrmd_tls_set_key(&psk_key) != 0) {
         lrmd_tls_connection_destroy(lrmd);
         return;
@@ -1207,7 +1207,7 @@ lrmd_tls_connect(lrmd_t * lrmd, int *fd)
     }
 
     native->sock = sock;
-
+	/* authkey(***REMOTE_KEY_LOCATION)î•ñ‚ğæ“¾‚·‚é */
     if (lrmd_tls_set_key(&psk_key) != 0) {
         lrmd_tls_connection_destroy(lrmd);
         return -1;

@@ -204,6 +204,7 @@ lrmd_server_send_reply(crm_client_t * client, uint32_t id, xmlNode * reply)
     return -1;
 }
 /* pacemaker_remoteからクライアント、Pacemakerノード(crmd)にnotifyメッセージを送信する */
+/* #通常のcrmd,lrmdの関係でもcrmdはlrmdのクライアントにあたる為、monitorエラーなどはnotifyメッセージで通知 */
 int
 lrmd_server_send_notify(crm_client_t * client, xmlNode * msg)
 {
@@ -328,8 +329,8 @@ main(int argc, char **argv)
 
     /* Legacy: Used by RAs - Leave owned by root */
     crm_build_path(HA_STATE_DIR"/heartbeat/rsctmp", 0755);
-
     rsc_list = g_hash_table_new_full(crm_str_hash, g_str_equal, NULL, free_rsc);
+	/* IPCサーバとしての待ち受けを起動(pacemaker_remoteはTLSサーバと２系統待ち受けが起動することになる) */
     ipcs = mainloop_add_ipc_server(CRM_SYSTEM_LRMD, QB_IPC_SHM, &lrmd_ipc_callbacks);
     if (ipcs == NULL) {
         crm_err("Failed to create IPC server: shutting down and inhibiting respawn");
@@ -340,7 +341,7 @@ main(int argc, char **argv)
 	/* pacemaker_remoteとして起動の場合、TLSサーバとしての待ち受けを起動 */
     {
         const char *remote_port_str = getenv("PCMK_remote_port");
-        int remote_port = remote_port_str ? atoi(remote_port_str) : DEFAULT_REMOTE_PORT;
+        int remote_port = remote_port_str ? atoi(q) : DEFAULT_REMOTE_PORT;
 
         if (lrmd_init_remote_tls_server(remote_port) < 0) {
             crm_err("Failed to create TLS server on port %d: shutting down and inhibiting respawn", remote_port);
@@ -350,10 +351,11 @@ main(int argc, char **argv)
         ipc_proxy_init();
     }
 #endif
-
+	/* SIGTERMハンドラ登録 */
     mainloop_add_signal(SIGTERM, lrmd_shutdown);
     mainloop = g_main_new(FALSE);
     crm_info("Starting");
+    /* メインループ実行 */
     g_main_run(mainloop);
 
     mainloop_del_ipc_server(ipcs);
