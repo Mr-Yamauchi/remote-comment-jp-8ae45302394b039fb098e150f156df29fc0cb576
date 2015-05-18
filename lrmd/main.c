@@ -339,6 +339,7 @@ main(int argc, char **argv)
 
 #ifdef ENABLE_PCMK_REMOTE
 	/* pacemaker_remoteとして起動の場合、TLSサーバとしての待ち受けを起動 */
+	/* デフォルトポートは、3121で、/etc/sysconfig/pacemaker/PCMK_remote_portでも指定可能 */
     {
         const char *remote_port_str = getenv("PCMK_remote_port");
         int remote_port = remote_port_str ? atoi(q) : DEFAULT_REMOTE_PORT;

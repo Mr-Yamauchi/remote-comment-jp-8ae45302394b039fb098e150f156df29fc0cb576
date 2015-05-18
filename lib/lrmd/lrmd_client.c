@@ -1161,7 +1161,7 @@ lrmd_tcp_connect_cb(void *userdata, int sock)
 
     return;
 }
-
+/* lrmdへTLS非同期接続する */
 static int
 lrmd_tls_connect_async(lrmd_t * lrmd, int timeout /*ms */ )
 {
@@ -1184,7 +1184,7 @@ lrmd_tls_connect_async(lrmd_t * lrmd, int timeout /*ms */ )
 
     return rc;
 }
-
+/* lrmdへTLS同期接続する */
 static int
 lrmd_tls_connect(lrmd_t * lrmd, int *fd)
 {
@@ -1270,7 +1270,7 @@ lrmd_api_connect(lrmd_t * lrmd, const char *name, int *fd)
 
     return rc;
 }
-
+/* lrmdへの非同期接続(ローカル、リモート) */
 static int
 lrmd_api_connect_async(lrmd_t * lrmd, const char *name, int timeout)
 {
@@ -1286,6 +1286,7 @@ lrmd_api_connect_async(lrmd_t * lrmd, const char *name, int timeout)
         case CRM_CLIENT_IPC:
             /* fake async connection with ipc.  it should be fast
              * enough that we gain very little from async */
+            /* ローカルのlrmdへIPC接続する */
             rc = lrmd_api_connect(lrmd, name, NULL);
             if (!rc) {
                 report_async_connection_result(lrmd, rc);
@@ -1293,6 +1294,7 @@ lrmd_api_connect_async(lrmd_t * lrmd, const char *name, int timeout)
             break;
 #ifdef HAVE_GNUTLS_GNUTLS_H
         case CRM_CLIENT_TLS:
+        	/* lrmdへTLS接続する */
             rc = lrmd_tls_connect_async(lrmd, timeout);
             if (rc) {
                 /* connection failed, report rc now */

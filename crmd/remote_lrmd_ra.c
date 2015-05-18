@@ -497,7 +497,7 @@ handle_remote_ra_stop(lrm_state_t * lrm_state, remote_ra_cmd_t * cmd)
 
     report_remote_ra_result(cmd);
 }
-
+/* リモートのリソースstart */
 static int
 handle_remote_ra_start(lrm_state_t * lrm_state, remote_ra_cmd_t * cmd, int timeout_ms)
 {
@@ -514,10 +514,10 @@ handle_remote_ra_start(lrm_state_t * lrm_state, remote_ra_cmd_t * cmd, int timeo
             port = atoi(tmp->value);
         }
     }
-
+	/* remoteへ非同期接続してstart */
     return lrm_state_remote_connect_async(lrm_state, server, port, timeout_used);
 }
-
+/* remoteのリソース実行処理 */
 static gboolean
 handle_remote_ra_exec(gpointer user_data)
 {
@@ -545,6 +545,7 @@ handle_remote_ra_exec(gpointer user_data)
 
         if (!strcmp(cmd->action, "start") || !strcmp(cmd->action, "migrate_from")) {
             ra_data->migrate_status = 0;
+            /* リモートのリソースstart */
             rc = handle_remote_ra_start(lrm_state, cmd, cmd->timeout);
             if (rc == 0) {
                 /* take care of this later when we get async connection result */
@@ -608,7 +609,7 @@ handle_remote_ra_exec(gpointer user_data)
 
     return TRUE;
 }
-
+/* リモートのデータ初期化処理 */
 static void
 remote_ra_data_init(lrm_state_t * lrm_state)
 {
@@ -617,7 +618,7 @@ remote_ra_data_init(lrm_state_t * lrm_state)
     if (lrm_state->remote_ra_data) {
         return;
     }
-
+	/* リモート用の実行トリガーをセット */
     ra_data = calloc(1, sizeof(remote_ra_data_t));
     ra_data->work = mainloop_add_trigger(G_PRIORITY_HIGH, handle_remote_ra_exec, lrm_state);
     lrm_state->remote_ra_data = ra_data;
@@ -784,7 +785,7 @@ remote_ra_exec(lrm_state_t * lrm_state, const char *rsc_id, const char *action, 
         rc = -EINVAL;
         goto exec_done;
     }
-
+	/* リモート実行用データの初期化処理(リモート用の実行トリガーなどのセット) */
     remote_ra_data_init(connection_rsc);
 
     cmd = calloc(1, sizeof(remote_ra_cmd_t));

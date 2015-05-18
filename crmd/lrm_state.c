@@ -555,7 +555,7 @@ remote_proxy_cb(lrmd_t *lrmd, void *userdata, xmlNode *msg)
         crm_err("Unknown proxy operation: %s", op);
     }
 }
-
+/* remoteへの非同期接続 */
 int
 lrm_state_remote_connect_async(lrm_state_t * lrm_state, const char *server, int port,
                                int timeout_ms)
@@ -563,7 +563,7 @@ lrm_state_remote_connect_async(lrm_state_t * lrm_state, const char *server, int 
     int ret;
 
     if (!lrm_state->conn) {
-		/* リモート接続を生成する */
+		/* リモート接続情報を生成する */
         lrm_state->conn = lrmd_remote_api_new(lrm_state->node_name, server, port);
         if (!lrm_state->conn) {
             return -1;
@@ -575,6 +575,7 @@ lrm_state_remote_connect_async(lrm_state_t * lrm_state, const char *server, int 
     }
 
     crm_trace("initiating remote connection to %s at %d with timeout %d", server, port, timeout_ms);
+	/* remoteへ非同期接続する */
     ret =
         ((lrmd_t *) lrm_state->conn)->cmds->connect_async(lrm_state->conn, lrm_state->node_name,
                                                           timeout_ms);
@@ -659,11 +660,13 @@ lrm_state_exec(lrm_state_t * lrm_state, const char *rsc_id, const char *action, 
     }
 	
     if (is_remote_lrmd_ra(NULL, NULL, rsc_id)) {
-		/* リモートのRA実行処理 */
+		/* remote-RAのop実行処理 */
+		/* remote-RAのみの操作で、remote上のリソースのOPはlrm_state->conn)->cmds->execで実行 */
         return remote_ra_exec(lrm_state,
                               rsc_id, action, userdata, interval, timeout, start_delay, params);
     }
-
+	/* ローカル、remote上のリソースのop実行処理 */
+	/* lrm_state->conn)->cmds->exec内の実際の送信処理内でlrmd/remoteの宛先を切り替えている */
     return ((lrmd_t *) lrm_state->conn)->cmds->exec(lrm_state->conn,
                                                     rsc_id,
                                                     action,
