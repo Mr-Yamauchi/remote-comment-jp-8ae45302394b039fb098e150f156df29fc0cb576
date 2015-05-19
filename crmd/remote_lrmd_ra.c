@@ -517,7 +517,7 @@ handle_remote_ra_start(lrm_state_t * lrm_state, remote_ra_cmd_t * cmd, int timeo
 	/* remoteへ非同期接続してstart */
     return lrm_state_remote_connect_async(lrm_state, server, port, timeout_used);
 }
-/* remoteのリソース実行処理 */
+/* remoteのリソース実行処理(トリガー経由で実行) */
 static gboolean
 handle_remote_ra_exec(gpointer user_data)
 {
@@ -616,9 +616,10 @@ remote_ra_data_init(lrm_state_t * lrm_state)
     remote_ra_data_t *ra_data = NULL;
 
     if (lrm_state->remote_ra_data) {
+		/* データが生成済の場合は、何もしない */
         return;
     }
-	/* リモート用の実行トリガーをセット */
+	/* リモート用の実行トリガー(remoteのリソース実行処理)をセット */
     ra_data = calloc(1, sizeof(remote_ra_data_t));
     ra_data->work = mainloop_add_trigger(G_PRIORITY_HIGH, handle_remote_ra_exec, lrm_state);
     lrm_state->remote_ra_data = ra_data;
@@ -674,7 +675,7 @@ remote_ra_get_rsc_info(lrm_state_t * lrm_state, const char *rsc_id)
 
     return info;
 }
-
+/* remote-RAのアクションチェック */
 static gboolean
 is_remote_ra_supported_action(const char *action)
 {
@@ -686,7 +687,7 @@ is_remote_ra_supported_action(const char *action)
                strcmp(action, "migrate_from") && strcmp(action, "monitor")) {
         return FALSE;
     }
-
+	/* start,stop,migrate_to,migrate_from,monitorなら処理 */
     return TRUE;
 }
 
@@ -763,7 +764,8 @@ remote_ra_cancel(lrm_state_t * lrm_state, const char *rsc_id, const char *action
 
     return 0;
 }
-
+/* remote-RAのop実行処理 */
+/* remote-RAのみの操作で、remote上のリソースのOPはlrm_state->conn)->cmds->execで実行 */
 int
 remote_ra_exec(lrm_state_t * lrm_state, const char *rsc_id, const char *action, const char *userdata, int interval,     /* ms */
                int timeout,     /* ms */
@@ -774,7 +776,7 @@ remote_ra_exec(lrm_state_t * lrm_state, const char *rsc_id, const char *action, 
     lrm_state_t *connection_rsc = NULL;
     remote_ra_cmd_t *cmd = NULL;
     remote_ra_data_t *ra_data = NULL;
-
+	/* remote-RAのアクションチェック */
     if (is_remote_ra_supported_action(action) == FALSE) {
         rc = -EINVAL;
         goto exec_done;

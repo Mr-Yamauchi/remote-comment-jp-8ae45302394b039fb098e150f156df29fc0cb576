@@ -563,7 +563,7 @@ lrm_state_remote_connect_async(lrm_state_t * lrm_state, const char *server, int 
     int ret;
 
     if (!lrm_state->conn) {
-		/* リモート接続情報を生成する */
+		/* リモート接続APIを生成する */
         lrm_state->conn = lrmd_remote_api_new(lrm_state->node_name, server, port);
         if (!lrm_state->conn) {
             return -1;

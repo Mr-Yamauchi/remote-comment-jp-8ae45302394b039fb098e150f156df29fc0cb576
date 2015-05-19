@@ -567,7 +567,7 @@ lrmd_tls_send_msg(crm_remote_t * session, xmlNode * msg, uint32_t id, const char
 
     crm_xml_add_int(msg, F_LRMD_REMOTE_MSG_ID, id);
     crm_xml_add(msg, F_LRMD_REMOTE_MSG_TYPE, msg_type);
-
+	/* remoteへのメッセージ送信処理 */
     rc = crm_remote_send(session, msg);
 
     if (rc < 0) {
@@ -661,7 +661,7 @@ lrmd_tls_recv_reply(lrmd_t * lrmd, int total_timeout, int expected_reply_id, int
 
     return xml;
 }
-
+/* remoteへのTLSメッセージの送信処理  */
 static int
 lrmd_tls_send(lrmd_t * lrmd, xmlNode * msg)
 {
@@ -681,7 +681,7 @@ lrmd_tls_send(lrmd_t * lrmd, xmlNode * msg)
     }
     return pcmk_ok;
 }
-
+/* remoteへのTLSメッセージの送受信処理 */
 static int
 lrmd_tls_send_recv(lrmd_t * lrmd, xmlNode * msg, int timeout, xmlNode ** reply)
 {
@@ -733,6 +733,7 @@ lrmd_send_xml(lrmd_t * lrmd, xmlNode * msg, int timeout, xmlNode ** reply)
             break;
 #ifdef HAVE_GNUTLS_GNUTLS_H
         case CRM_CLIENT_TLS:
+        	/* remoteへのTLSメッセージの送受信 */
             rc = lrmd_tls_send_recv(lrmd, msg, timeout, reply);
             break;
 #endif
@@ -755,6 +756,7 @@ lrmd_send_xml_no_reply(lrmd_t * lrmd, xmlNode * msg)
             break;
 #ifdef HAVE_GNUTLS_GNUTLS_H
         case CRM_CLIENT_TLS:
+        	/* remoteへのTLSメッセージの送信 */
             rc = lrmd_tls_send(lrmd, msg);
             if (rc == pcmk_ok) {
                 /* we don't want to wait around for the reply, but
@@ -1135,7 +1137,7 @@ lrmd_tcp_connect_cb(void *userdata, int sock)
     gnutls_free(psk_key.data);
 
     native->remote->tls_session = create_psk_tls_session(sock, GNUTLS_CLIENT, native->psk_cred_c);
-
+	/* TLSハンドシェイクの実行 */
     if (crm_initiate_client_tls_handshake(native->remote, LRMD_CLIENT_HANDSHAKE_TIMEOUT) != 0) {
         crm_warn("Client tls handshake failed for server %s:%d. Disconnecting", native->server,
                  native->port);
@@ -1218,7 +1220,7 @@ lrmd_tls_connect(lrmd_t * lrmd, int *fd)
     gnutls_free(psk_key.data);
 
     native->remote->tls_session = create_psk_tls_session(sock, GNUTLS_CLIENT, native->psk_cred_c);
-
+	/* TLSハンドシェイクの実行 */
     if (crm_initiate_client_tls_handshake(native->remote, LRMD_CLIENT_HANDSHAKE_TIMEOUT) != 0) {
         crm_err("Session creation for %s:%d failed", native->server, native->port);
         gnutls_deinit(*native->remote->tls_session);
@@ -2083,7 +2085,7 @@ lrmd_api_list_standards(lrmd_t * lrmd, lrmd_list_t ** supported)
     g_list_free_full(standards, free);
     return rc;
 }
-
+/* ローカル接続のAPIを生成する */
 lrmd_t *
 lrmd_api_new(void)
 {
@@ -2097,7 +2099,7 @@ lrmd_api_new(void)
 
     pvt->type = CRM_CLIENT_IPC;
     new_lrmd->private = pvt;
-
+	/* API関数のセット */
     new_lrmd->cmds->connect = lrmd_api_connect;
     new_lrmd->cmds->connect_async = lrmd_api_connect_async;
     new_lrmd->cmds->is_connected = lrmd_api_is_connected;
@@ -2116,25 +2118,29 @@ lrmd_api_new(void)
 
     return new_lrmd;
 }
-/* リモート接続を生成する */
+/* リモート接続のAPI生成する */
 lrmd_t *
 lrmd_remote_api_new(const char *nodename, const char *server, int port)
 {
 #ifdef HAVE_GNUTLS_GNUTLS_H
+	/* ローカル接続のAPIを生成する */
     lrmd_t *new_lrmd = lrmd_api_new();
     lrmd_private_t *native = new_lrmd->private;
 
     if (!nodename && !server) {
+		/* ノード名、サーバ名がNULLなら破棄して終了 */
         lrmd_api_delete(new_lrmd);
         return NULL;
     }
-
+	/* 接続情報のセット */
     native->type = CRM_CLIENT_TLS;
     native->remote_nodename = nodename ? strdup(nodename) : strdup(server);
     native->server = server ? strdup(server) : strdup(nodename);
     native->port = port;
     if (native->port == 0) {
+		/* portが0の場合は、/etc/sysconfig/pacemakerからPCMK_remote_portでセット */
         const char *remote_port_str = getenv("PCMK_remote_port");
+        /* /etc/sysconfig/pacemakerのPCMK_remote_portが未設定なら、デフォルトポートをセット */
         native->port = remote_port_str ? atoi(remote_port_str) : DEFAULT_REMOTE_PORT;
     }
 

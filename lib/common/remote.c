@@ -138,7 +138,7 @@ crm_remote_header(crm_remote_t * remote)
 }
 
 #ifdef HAVE_GNUTLS_GNUTLS_H
-
+/* TLSハンドシェイクの実行 */
 int
 crm_initiate_client_tls_handshake(crm_remote_t * remote, int timeout_ms)
 {
@@ -147,6 +147,7 @@ crm_initiate_client_tls_handshake(crm_remote_t * remote, int timeout_ms)
     time_t start = time(NULL);
 
     do {
+		/* gnutls_handshake()の実行 */
         rc = gnutls_handshake(*remote->tls_session);
         if (rc == GNUTLS_E_INTERRUPTED || rc == GNUTLS_E_AGAIN) {
             pollrc = crm_remote_ready(remote, 1000);
@@ -324,7 +325,7 @@ crm_remote_sendv(crm_remote_t * remote, struct iovec * iov, int iovs)
     }
     return rc;
 }
-
+/* remoteへのメッセージ送信処理 */
 int
 crm_remote_send(crm_remote_t * remote, xmlNode * msg)
 {
