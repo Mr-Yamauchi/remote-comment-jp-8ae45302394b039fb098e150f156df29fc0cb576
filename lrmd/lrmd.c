@@ -402,7 +402,7 @@ send_client_notify(gpointer key, gpointer value, gpointer user_data)
         crm_trace("Asked to send event to client with no name");
         return;
     }
-	/* クライアントにnotifyメッセージを送信する */
+    /* pacemaker_remoteからPacemakerノード(crmd)にメッセージを送信する */
     if (lrmd_server_send_notify(client, update_msg) <= 0) {
         crm_warn("Notification of client %s/%s failed", client->name, client->id);
     }
@@ -1673,6 +1673,7 @@ process_lrmd_message(crm_client_t * client, uint32_t id, xmlNode * request)
         rc = process_lrmd_rsc_cancel(client, id, request);
         do_reply = 1;
     } else if (crm_str_eq(op, LRMD_OP_POKE, TRUE)) {
+        /* POKEメッセージを受信した場合は、応答と、notifyを実行する */
         do_notify = 1;
         do_reply = 1;
     } else {

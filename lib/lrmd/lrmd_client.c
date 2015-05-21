@@ -866,7 +866,7 @@ lrmd_send_command(lrmd_t * lrmd, const char *op, xmlNode * data, xmlNode ** outp
     free_xml(op_reply);
     return rc;
 }
-
+/* Pokeメッセージを送信する(LRMD_OP_POKE) */
 static int
 lrmd_api_poke_connection(lrmd_t * lrmd)
 {
@@ -880,7 +880,7 @@ lrmd_api_poke_connection(lrmd_t * lrmd)
 
     return rc < 0 ? rc : pcmk_ok;
 }
-
+/* lrmdハンドシェイク処理(CRM_OP_REGISTERメッセージの送信) */
 static int
 lrmd_handshake(lrmd_t * lrmd, const char *name)
 {
@@ -1101,6 +1101,7 @@ report_async_connection_result(lrmd_t * lrmd, int rc)
 }
 
 #ifdef HAVE_GNUTLS_GNUTLS_H
+/* tcp接続コールバック */
 static void
 lrmd_tcp_connect_cb(void *userdata, int sock)
 {
@@ -1157,7 +1158,7 @@ lrmd_tcp_connect_cb(void *userdata, int sock)
     native->process_notify = mainloop_add_trigger(G_PRIORITY_HIGH, lrmd_tls_dispatch, lrmd);
     native->source =
         mainloop_add_fd(name, G_PRIORITY_HIGH, native->sock, lrmd, &lrmd_tls_callbacks);
-
+	/* lrmdハンドシェイク処理(CRM_OP_REGISTERメッセージの送信) */
     rc = lrmd_handshake(lrmd, name);
     report_async_connection_result(lrmd, rc);
 
@@ -1174,7 +1175,7 @@ lrmd_tls_connect_async(lrmd_t * lrmd, int timeout /*ms */ )
     lrmd_private_t *native = lrmd->private;
 
     lrmd_gnutls_global_init();
-
+	/* 共通リモート非同期接続を実行-コールバック:lrmd_tcp_connect_cbでTLSハンドシェイク,lrmdハンドシェイクも実行 */
     sock = crm_remote_tcp_connect_async(native->server, native->port, timeout, &timer_id, lrmd,
                                       lrmd_tcp_connect_cb);
 
@@ -1297,6 +1298,7 @@ lrmd_api_connect_async(lrmd_t * lrmd, const char *name, int timeout)
 #ifdef HAVE_GNUTLS_GNUTLS_H
         case CRM_CLIENT_TLS:
         	/* lrmdへTLS接続する */
+			/* --共通リモート非同期接続を実行-コールバック:lrmd_tcp_connect_cbでTLSハンドシェイク,lrmdハンドシェイクも実行 */
             rc = lrmd_tls_connect_async(lrmd, timeout);
             if (rc) {
                 /* connection failed, report rc now */

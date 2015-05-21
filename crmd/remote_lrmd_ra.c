@@ -141,6 +141,7 @@ recurring_helper(gpointer data)
         ra_data->recurring_cmds = g_list_remove(ra_data->recurring_cmds, cmd);
 
         ra_data->cmds = g_list_append(ra_data->cmds, cmd);
+		/* トリガーをセットする */
         mainloop_set_trigger(ra_data->work);
     }
     return FALSE;
@@ -156,7 +157,7 @@ start_delay_helper(gpointer data)
     connection_rsc = lrm_state_find(cmd->rsc_id);
     if (connection_rsc && connection_rsc->remote_ra_data) {
         remote_ra_data_t *ra_data = connection_rsc->remote_ra_data;
-
+		/* トリガーをセットする */
         mainloop_set_trigger(ra_data->work);
     }
     return FALSE;
@@ -205,7 +206,7 @@ report_remote_ra_result(remote_ra_cmd_t * cmd)
     }
     op.call_id = cmd->call_id;
     op.remote_nodename = cmd->owner;
-
+	/* lrmdへの操作コールバック */
     lrm_op_callback(&op);
 
     if (op.params) {
@@ -246,6 +247,7 @@ retry_start_cmd_cb(gpointer data)
         report_remote_ra_result(cmd);
 
         if (ra_data->cmds) {
+			/* トリガーをセットする */
             mainloop_set_trigger(ra_data->work);
         }
         ra_data->cur_cmd = NULL;
@@ -294,6 +296,7 @@ monitor_timeout_cb(gpointer data)
             ra_data->cur_cmd = NULL;
         }
         if (ra_data->cmds) {
+			/* トリガーをセットする */
             mainloop_set_trigger(ra_data->work);
         }
     }
@@ -355,6 +358,7 @@ remote_lrm_op_callback(lrmd_event_data_t * op)
         if (ra_data->migrate_status == takeover_complete) {
             crm_debug("ignoring event, this connection is taken over by another node");
         } else {
+			/* lrmdへの操作コールバック */
             lrm_op_callback(op);
         }
         return;
@@ -461,6 +465,7 @@ remote_lrm_op_callback(lrmd_event_data_t * op)
     if (cmd_handled) {
         ra_data->cur_cmd = NULL;
         if (ra_data->cmds) {
+			/* トリガーをセットする */
             mainloop_set_trigger(ra_data->work);
         }
         free_cmd(cmd);
@@ -544,6 +549,7 @@ handle_remote_ra_exec(gpointer user_data)
         g_list_free_1(first);
 
         if (!strcmp(cmd->action, "start") || !strcmp(cmd->action, "migrate_from")) {
+			/* アクションがstart,migrate_fromの場合 */
             ra_data->migrate_status = 0;
             /* リモートのリソースstart */
             rc = handle_remote_ra_start(lrm_state, cmd, cmd->timeout);
@@ -560,14 +566,16 @@ handle_remote_ra_exec(gpointer user_data)
             report_remote_ra_result(cmd);
 
         } else if (!strcmp(cmd->action, "monitor")) {
-
+			/* アクションがmonitorの場合 */
             if (lrm_state_is_connected(lrm_state) == TRUE) {
+				/* remoteに接続済の場合は、remoteにLRMD_OP_POKEメッセージを送信する */
                 rc = lrm_state_poke_connection(lrm_state);
                 if (rc < 0) {
                     cmd->rc = PCMK_OCF_UNKNOWN_ERROR;
                     cmd->op_status = PCMK_LRM_OP_ERROR;
                 }
             } else {
+				/* 未接続の場合は、OPは完了と見なして、NOT_RUNNINGを返す */
                 rc = -1;
                 cmd->op_status = PCMK_LRM_OP_DONE;
                 cmd->rc = PCMK_OCF_NOT_RUNNING;
@@ -582,7 +590,7 @@ handle_remote_ra_exec(gpointer user_data)
             report_remote_ra_result(cmd);
 
         } else if (!strcmp(cmd->action, "stop")) {
-
+			/* アクションがstopの場合 */
             if (ra_data->migrate_status == expect_takeover) {
                 /* briefly wait on stop for the takeover event to occur. If the
                  * takeover event does not occur during the wait period, that's fine.
@@ -809,6 +817,7 @@ remote_ra_exec(lrm_state_t * lrm_state, const char *rsc_id, const char *action, 
     ra_data = connection_rsc->remote_ra_data;
 
     ra_data->cmds = g_list_append(ra_data->cmds, cmd);
+	/* トリガーをセットする */
     mainloop_set_trigger(ra_data->work);
 
     return cmd->call_id;

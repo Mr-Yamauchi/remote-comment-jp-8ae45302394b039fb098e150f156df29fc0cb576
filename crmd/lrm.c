@@ -229,7 +229,7 @@ update_history_cache(lrm_state_t * lrm_state, lrmd_rsc_info_t * rsc, lrmd_event_
         entry->recurring_op_list = NULL;
     }
 }
-
+/* lrmdへの操作コールバック */
 void
 lrm_op_callback(lrmd_event_data_t * op)
 {
