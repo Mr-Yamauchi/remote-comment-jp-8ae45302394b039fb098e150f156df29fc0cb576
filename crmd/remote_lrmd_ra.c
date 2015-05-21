@@ -318,7 +318,7 @@ simple_remote_node_status(const char *node_name, xmlNode * parent, const char *s
 
     return state;
 }
-/* リモート接続opコールバック */
+/* リモート接続(remote RAの)opコールバック */
 void
 remote_lrm_op_callback(lrmd_event_data_t * op)
 {
@@ -417,7 +417,8 @@ remote_lrm_op_callback(lrmd_event_data_t * op)
         cmd_handled = TRUE;
 
     } else if (op->type == lrmd_event_poke && safe_str_eq(cmd->action, "monitor")) {
-
+		/* monitor操作が完了した場合 */
+		/* 一旦、タイムアウトタイマーを削除 */
         if (cmd->monitor_timeout_id) {
             g_source_remove(cmd->monitor_timeout_id);
             cmd->monitor_timeout_id = 0;
@@ -437,6 +438,7 @@ remote_lrm_op_callback(lrmd_event_data_t * op)
 
         /* success, keep rescheduling if interval is present. */
         if (cmd->interval && (cmd->cancel == FALSE)) {
+			/* monitor再実行の為に、monitorのintervalでタイマーを仕掛ける */
             ra_data->recurring_cmds = g_list_append(ra_data->recurring_cmds, cmd);
             cmd->interval_id = g_timeout_add(cmd->interval, recurring_helper, cmd);
             cmd = NULL;         /* prevent free */
@@ -569,6 +571,7 @@ handle_remote_ra_exec(gpointer user_data)
 			/* アクションがmonitorの場合 */
             if (lrm_state_is_connected(lrm_state) == TRUE) {
 				/* remoteに接続済の場合は、remoteにLRMD_OP_POKEメッセージを送信する */
+				/* --- start後に実施されるremote RAのmonitorはLRMD_OP_POKEメッセージのやり取りだけで代用されている ---*/
                 rc = lrm_state_poke_connection(lrm_state);
                 if (rc < 0) {
                     cmd->rc = PCMK_OCF_UNKNOWN_ERROR;

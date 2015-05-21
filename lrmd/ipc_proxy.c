@@ -247,6 +247,7 @@ ipc_proxy_dispatch(qb_ipcs_connection_t * c, void *data, size_t size)
     crm_xml_add_int(msg, F_LRMD_IPC_MSG_ID, id);
     crm_xml_add_int(msg, F_LRMD_IPC_MSG_FLAGS, flags);
     add_message_xml(msg, F_LRMD_IPC_MSG, request);
+    /* pacemaker_remoteからPacemakerノード(crmd)にメッセージを送信する */
     lrmd_server_send_notify(ipc_proxy, msg);
     free_xml(msg);
 

@@ -663,7 +663,7 @@ struct tcp_async_cb_data {
     int timeout;                /*ms */
     time_t start;
 };
-
+/* 非同期接続の接続完了チェック処理 */
 static gboolean
 check_connect_finished(gpointer userdata)
 {
@@ -751,7 +751,7 @@ check_connect_finished(gpointer userdata)
     /* will check again next interval */
     return TRUE;
 }
-
+/* 非同期接続処理 */
 static int
 internal_tcp_connect_async(int sock,
                            const struct sockaddr *addr, socklen_t addrlen, int timeout /* ms */ ,
@@ -801,6 +801,7 @@ internal_tcp_connect_async(int sock,
      * Something about the way mainloop is currently polling prevents this from working at the
      * moment though. */
     crm_trace("fd %d: scheduling to check if connect finished in %dms second", sock, interval);
+	/* チェックタイマーで接続完了をチェックする */
     timer = g_timeout_add(interval, check_connect_finished, cb_data);
     if (timer_id) {
         *timer_id = timer;
@@ -808,13 +809,14 @@ internal_tcp_connect_async(int sock,
 
     return 0;
 }
-
+/* 同期接続処理 */
 static int
 internal_tcp_connect(int sock, const struct sockaddr *addr, socklen_t addrlen)
 {
     int flag = 0;
+    /* CONNECTを実行 */
     int rc = connect(sock, addr, addrlen);
-
+	/* 接続チェック */
     if (rc == 0) {
         if ((flag = fcntl(sock, F_GETFL)) >= 0) {
             if (fcntl(sock, F_SETFL, flag | O_NONBLOCK) < 0) {
@@ -899,12 +901,14 @@ crm_remote_tcp_connect_async(const char *host, int port, int timeout, /*ms */
         crm_info("Attempting to connect to remote server at %s:%d", buffer, port);
 
         if (callback) {
+			/* 非同期接続処理 */
             if (internal_tcp_connect_async
                 (sock, rp->ai_addr, rp->ai_addrlen, timeout, timer_id, userdata, callback) == 0) {
                 goto async_cleanup; /* Success for now, we'll hear back later in the callback */
             }
 
         } else {
+			/* 同期接続処理 */
             if (internal_tcp_connect(sock, rp->ai_addr, rp->ai_addrlen) == 0) {
                 break;          /* Success */
             }

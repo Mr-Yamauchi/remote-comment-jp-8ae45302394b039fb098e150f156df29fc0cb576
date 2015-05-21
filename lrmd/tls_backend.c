@@ -229,7 +229,7 @@ lrmd_remote_listen(gpointer data)
         close(csock);
         return TRUE;
     }
-	/* セッションを生成 */
+	/* セッションを生成(SERVER) */
     session = create_psk_tls_session(csock, GNUTLS_SERVER, psk_cred_s);
     if (session == NULL) {
         crm_err("TLS session creation failed");

@@ -205,6 +205,7 @@ client_start(gpointer user_data)
         client_exit(PCMK_OCF_UNKNOWN_ERROR);
 
     } else if (safe_str_eq(options.api_call, "poke")) {
+		/* pokeメッセージ(LRMD_OP_POKE)を送信する */
         rc = lrmd_conn->cmds->poke_connection(lrmd_conn);
         if (rc != pcmk_ok) {
             client_exit(PCMK_OCF_UNKNOWN_ERROR);

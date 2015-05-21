@@ -636,6 +636,7 @@ lrmd_tls_recv_reply(lrmd_t * lrmd, int total_timeout, int expected_reply_id, int
             native->pending_notify = g_list_append(native->pending_notify, xml);
             if (native->process_notify) {
                 crm_info("notify trigger set.");
+                /* notify処理の為にトリガーを叩く */
                 mainloop_set_trigger(native->process_notify);
             }
             xml = NULL;
@@ -656,6 +657,7 @@ lrmd_tls_recv_reply(lrmd_t * lrmd, int total_timeout, int expected_reply_id, int
     }
 
     if (native->remote->buffer && native->process_notify) {
+        /* notify処理の為にトリガーを叩く */
         mainloop_set_trigger(native->process_notify);
     }
 
@@ -1136,7 +1138,7 @@ lrmd_tcp_connect_cb(void *userdata, int sock)
     gnutls_psk_allocate_client_credentials(&native->psk_cred_c);
     gnutls_psk_set_client_credentials(native->psk_cred_c, DEFAULT_REMOTE_USERNAME, &psk_key, GNUTLS_PSK_KEY_RAW);
     gnutls_free(psk_key.data);
-
+	/* TLSセッションの生成 */
     native->remote->tls_session = create_psk_tls_session(sock, GNUTLS_CLIENT, native->psk_cred_c);
 	/* TLSハンドシェイクの実行 */
     if (crm_initiate_client_tls_handshake(native->remote, LRMD_CLIENT_HANDSHAKE_TIMEOUT) != 0) {
@@ -1154,7 +1156,7 @@ lrmd_tcp_connect_cb(void *userdata, int sock)
              native->port);
 
     snprintf(name, 128, "remote-lrmd-%s:%d", native->server, native->port);
-
+	/* notifyの処理ハンドラの登録 */
     native->process_notify = mainloop_add_trigger(G_PRIORITY_HIGH, lrmd_tls_dispatch, lrmd);
     native->source =
         mainloop_add_fd(name, G_PRIORITY_HIGH, native->sock, lrmd, &lrmd_tls_callbacks);
@@ -1215,11 +1217,11 @@ lrmd_tls_connect(lrmd_t * lrmd, int *fd)
         lrmd_tls_connection_destroy(lrmd);
         return -1;
     }
-
+	/* GNUTLS credential処理 */
     gnutls_psk_allocate_client_credentials(&native->psk_cred_c);
     gnutls_psk_set_client_credentials(native->psk_cred_c, DEFAULT_REMOTE_USERNAME, &psk_key, GNUTLS_PSK_KEY_RAW);
     gnutls_free(psk_key.data);
-
+	/* TLSセッションの生成 */
     native->remote->tls_session = create_psk_tls_session(sock, GNUTLS_CLIENT, native->psk_cred_c);
 	/* TLSハンドシェイクの実行 */
     if (crm_initiate_client_tls_handshake(native->remote, LRMD_CLIENT_HANDSHAKE_TIMEOUT) != 0) {
