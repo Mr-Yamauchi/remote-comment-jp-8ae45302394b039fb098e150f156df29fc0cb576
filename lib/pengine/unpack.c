@@ -402,7 +402,8 @@ expand_remote_rsc_meta(xmlNode *xml_obj, xmlNode *parent, GHashTable **rsc_name_
                 remote_name);
         return NULL;
     }
-
+	/* remoteリソースを内部的に生成し、start/monitor/stopのoperationも生成する */
+	/* montorのintervalは、30sでハードコーディング */
     xml_rsc = create_xml_node(parent, XML_CIB_TAG_RESOURCE);
 
     crm_xml_add(xml_rsc, XML_ATTR_ID, remote_name);
