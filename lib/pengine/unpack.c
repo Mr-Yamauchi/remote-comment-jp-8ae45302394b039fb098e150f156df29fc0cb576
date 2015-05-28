@@ -342,7 +342,7 @@ create_node(const char *id, const char *uname, const char *type, const char *sco
     data_set->nodes = g_list_insert_sorted(data_set->nodes, new_node, sort_node_uname);
     return new_node;
 }
-
+/* meta設定のremoteリソースを展開する */
 static const char *
 expand_remote_rsc_meta(xmlNode *xml_obj, xmlNode *parent, GHashTable **rsc_name_check)
 {
@@ -363,11 +363,11 @@ expand_remote_rsc_meta(xmlNode *xml_obj, xmlNode *parent, GHashTable **rsc_name_
         if (safe_str_neq((const char *)attr_set->name, XML_TAG_META_SETS)) {
             continue;
         }
-
+		/* meta設定からremoteの設定を取り出す */
         for (attr = __xml_first_child(attr_set); attr != NULL; attr = __xml_next(attr)) {
             const char *value = crm_element_value(attr, XML_NVPAIR_ATTR_VALUE);
             const char *name = crm_element_value(attr, XML_NVPAIR_ATTR_NAME);
-
+			/* XML_RSC_ATTR_REMOTE_NODEは、"remote-node" */
             if (safe_str_eq(name, XML_RSC_ATTR_REMOTE_NODE)) {
                 remote_name = value;
             } else if (safe_str_eq(name, "remote-addr")) {
@@ -383,6 +383,7 @@ expand_remote_rsc_meta(xmlNode *xml_obj, xmlNode *parent, GHashTable **rsc_name_
     }
 
     if (remote_name == NULL) {
+		/* "remote-node"のmetaがなければ、処理しない */
         return NULL;
     }
 
@@ -403,6 +404,7 @@ expand_remote_rsc_meta(xmlNode *xml_obj, xmlNode *parent, GHashTable **rsc_name_
         return NULL;
     }
 	/* remoteリソースを内部的に生成し、start/monitor/stopのoperationも生成する */
+	/* あくまで、pengine処理内部の話であって生成したremoteリソースはcibのresourcesセクションには反映されないので注意 */
 	/* montorのintervalは、30sでハードコーディング */
     xml_rsc = create_xml_node(parent, XML_CIB_TAG_RESOURCE);
 
