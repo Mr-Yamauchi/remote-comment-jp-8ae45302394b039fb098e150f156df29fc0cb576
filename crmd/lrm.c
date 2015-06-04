@@ -2169,6 +2169,8 @@ process_lrm_event(lrm_state_t * lrm_state, lrmd_event_data_t * op)
             /* Keep notify ops out of the CIB */
             send_direct_ack(NULL, NULL, NULL, op, op->rsc_id);
         } else {
+			//lrmd‚©‚ç‚ÌŒ‹‰Ê(monitorŒÌá‚È‚Ç‚ğŠÜ‚Ş)‚ğcib‚É”½‰f‚·‚é
+			//‚±‚Ìcib”½‰f‚ğŒ³‚Épengine‚Åó‘Ô‘JˆÚƒOƒ‰ƒt‚ªì¬‚³‚ê‚ÄAcrmd‚É’Ê’mEˆ—‚³‚ê‚éB
             update_id = do_update_resource(lrm_state, rsc, op);
         }
     } else if (op->interval == 0) {

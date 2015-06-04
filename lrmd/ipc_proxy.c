@@ -70,6 +70,7 @@ ipc_proxy_accept(qb_ipcs_connection_t * c, uid_t uid, gid_t gid, const char *ipc
         /* grab the first provider available, any provider in this
          * table will work. Usually there will only be one. These are
          * lrmd client connections originating for a cluster node's crmd. */
+        //ipc_providersハッシュテーブルの先頭値を要求送信先(crmd)に設定する
         ipc_proxy = value;
     } else {
         crm_err("No ipc providers available for uid %d gid %d", uid, gid);
@@ -78,6 +79,7 @@ ipc_proxy_accept(qb_ipcs_connection_t * c, uid_t uid, gid_t gid, const char *ipc
 
     /* this new client is a local ipc client on a remote
      * guest wanting to access the ipc on any available cluster nodes */
+    //IPCクライアント情報を生成
     client = crm_client_new(c, uid, gid);
     if (client == NULL) {
         return -EREMOTEIO;
@@ -87,7 +89,7 @@ ipc_proxy_accept(qb_ipcs_connection_t * c, uid_t uid, gid_t gid, const char *ipc
      * provider goes away, this client is disconnected */
     client->userdata = strdup(ipc_proxy->id);
     client->name = crm_strdup_printf("proxy-%s-%d-%.8s", ipc_channel, client->pid, client->id);
-
+	//IPCクライアントハッシュに登録
     g_hash_table_insert(ipc_clients, client->id, client);
 
     msg = create_xml_node(NULL, T_LRMD_IPC_PROXY);
