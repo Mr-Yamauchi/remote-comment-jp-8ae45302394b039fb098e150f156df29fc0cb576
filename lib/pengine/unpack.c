@@ -607,7 +607,7 @@ setup_container(resource_t * rsc, pe_working_set_t * data_set)
         }
     }
 }
-
+/* remoteリソース情報をノード情報に展開する */
 gboolean
 unpack_remote_nodes(xmlNode * xml_resources, pe_working_set_t * data_set)
 {
@@ -637,6 +637,7 @@ unpack_remote_nodes(xmlNode * xml_resources, pe_working_set_t * data_set)
 
             /* only create the remote node entry if the node didn't already exist */
             if (pe_find_node(data_set->nodes, new_node_id) == NULL) {
+				/* ノード情報にremoteノード情報を追加する */
                 create_node(new_node_id, new_node_id, "remote", NULL, data_set);
             }
 

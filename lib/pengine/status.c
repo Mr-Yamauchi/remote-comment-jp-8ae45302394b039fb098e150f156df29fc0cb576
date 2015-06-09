@@ -97,6 +97,7 @@ cluster_status(pe_working_set_t * data_set)
     unpack_nodes(cib_nodes, data_set);
 
     if(is_not_set(data_set->flags, pe_flag_quick_location)) {
+		/* リモート情報をノード情報に展開する */
         unpack_remote_nodes(cib_resources, data_set);
     }
 
