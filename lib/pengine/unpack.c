@@ -73,6 +73,8 @@ pe_fence_node(pe_working_set_t * data_set, node_t * node, const char *reason)
         if (is_set(rsc->flags, pe_rsc_failed) == FALSE) {
             crm_warn("Remote node %s will be fenced by recovering container resource %s",
                 node->details->uname, rsc->id, reason);
+            /* VirtualDomain管理のremoteの場合、VirtualDomain内のリソース故障が発生したら、VirtualDomainリソースの故障をセットして */
+            /* VirtualDomainリソースのstop/start(Recovery)で、fencingを実現する */
             set_bit(rsc->flags, pe_rsc_failed);
         }
     } else if (is_dangling_container_remote_node(node)) {
