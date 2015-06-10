@@ -83,6 +83,7 @@ pe_fence_node(pe_working_set_t * data_set, node_t * node, const char *reason)
         set_bit(node->details->remote_rsc->flags, pe_rsc_failed);
 
     } else if (is_baremetal_remote_node(node)) {
+		/* remote管理のremoteの場合、remoteノードをuncleanにして、STONITHを実行させる */
         if(pe_can_fence(data_set, node)) {
             crm_warn("Node %s will be fenced %s", node->details->uname, reason);
         } else {
