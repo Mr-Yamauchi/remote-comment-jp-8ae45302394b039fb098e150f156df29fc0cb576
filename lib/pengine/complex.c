@@ -486,11 +486,13 @@ common_unpack(xmlNode * xml_obj, resource_t ** rsc,
     if (crm_is_true(value)) {
         set_bit((*rsc)->flags, pe_rsc_notify);
     }
-
+	/* ocf:pacemaker:remoteƒŠƒ\[ƒX‚©‚Ç‚¤‚©‚ğ”»’è‚·‚é */
     if (xml_contains_remote_node((*rsc)->xml)) {
         if (g_hash_table_lookup((*rsc)->meta, XML_RSC_ATTR_CONTAINER)) {
+			/* meta‘®«‚Écontainer‚ªİ’è‚³‚ê‚Ä‚¢‚éê‡(VirtualDmain§Œä‚È‚Ç‚Ìê‡) */
             container_remote_node = 1;
         } else {
+			/* meta‘®«‚Écontainer‚ªİ’è‚³‚ê‚Ä‚¢‚È‚¢ê‡(baremetal_remote_node) */
             baremetal_remote_node = 1;
         }
     }

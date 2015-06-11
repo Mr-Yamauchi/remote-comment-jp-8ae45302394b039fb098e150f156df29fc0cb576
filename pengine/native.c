@@ -3222,6 +3222,7 @@ native_append_meta(resource_t * rsc, xmlNode * xml)
     }
 
     for (parent = rsc; parent != NULL; parent = parent->parent) {
+		/* 親リソースがcontainerの場合は、nativeリソースのmeta属性にもcontainer属性として、親リソースのcontainer属性のidをセットする */
         if (parent->container) {
             crm_xml_add(xml, CRM_META"_"XML_RSC_ATTR_CONTAINER, parent->container->id);
         }

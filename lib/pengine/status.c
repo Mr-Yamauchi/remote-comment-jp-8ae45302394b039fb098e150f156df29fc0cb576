@@ -85,7 +85,7 @@ cluster_status(pe_working_set_t * data_set)
 
     data_set->op_defaults = get_xpath_object("//"XML_CIB_TAG_OPCONFIG, data_set->input, LOG_TRACE);
     data_set->rsc_defaults = get_xpath_object("//"XML_CIB_TAG_RSCCONFIG, data_set->input, LOG_TRACE);
-
+	/* config情報を展開 */
     unpack_config(config, data_set);
 
    if (is_not_set(data_set->flags, pe_flag_quick_location)
@@ -93,18 +93,19 @@ cluster_status(pe_working_set_t * data_set)
        && data_set->no_quorum_policy != no_quorum_ignore) {
         crm_notice("We do not have quorum - fencing and resource management disabled");
     }
-
+	/* ノード情報を展開 */
     unpack_nodes(cib_nodes, data_set);
 
     if(is_not_set(data_set->flags, pe_flag_quick_location)) {
-		/* リモート情報をノード情報に展開する */
+		/* remoteリソース情報をノード情報、リソース情報に展開する */
         unpack_remote_nodes(cib_resources, data_set);
     }
-
+	/* リソース情報を展開 */
     unpack_resources(cib_resources, data_set);
     unpack_tags(cib_tags, data_set);
 
     if(is_not_set(data_set->flags, pe_flag_quick_location)) {
+		/* status情報を展開 */
         unpack_status(cib_status, data_set);
     }
 

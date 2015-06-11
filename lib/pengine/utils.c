@@ -2020,7 +2020,7 @@ rsc_contains_remote_node(pe_working_set_t * data_set, resource_t *rsc)
     }
     return NULL;
 }
-
+/* ocf:pacemaker:remoteƒŠƒ\[ƒX‚©‚Ç‚¤‚©‚ğ”»’è‚·‚é */
 gboolean
 xml_contains_remote_node(xmlNode *xml)
 {

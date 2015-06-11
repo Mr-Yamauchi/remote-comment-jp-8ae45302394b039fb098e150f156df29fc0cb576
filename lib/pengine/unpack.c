@@ -103,7 +103,7 @@ pe_fence_node(pe_working_set_t * data_set, node_t * node, const char *reason)
         crm_trace("Huh? %s %s", node->details->uname, reason);
     }
 }
-
+/* config情報を展開 */
 gboolean
 unpack_config(xmlNode * config, pe_working_set_t * data_set)
 {
@@ -139,7 +139,7 @@ unpack_config(xmlNode * config, pe_working_set_t * data_set)
         freeXpathObject(xpathObj);
     }
 #endif
-
+	/* ハッシュテーブルをdata_setにセット */
     data_set->config_hash = config_hash;
 
     unpack_instance_attributes(data_set->input, config, XML_CIB_TAG_PROPSET, NULL, config_hash,
@@ -354,7 +354,7 @@ expand_remote_rsc_meta(xmlNode *xml_obj, xmlNode *parent, GHashTable **rsc_name_
     xmlNode *attr_set = NULL;
     xmlNode *attr = NULL;
 
-    const char *container_id = ID(xml_obj);
+    const char *container_id = ID(xml_obj);	/* container_idにxml情報のidを取り出す */
     const char *remote_name = NULL;
     const char *remote_server = NULL;
     const char *remote_port = NULL;
@@ -420,7 +420,7 @@ expand_remote_rsc_meta(xmlNode *xml_obj, xmlNode *parent, GHashTable **rsc_name_
     tmp_id = crm_concat(remote_name, XML_TAG_META_SETS, '_');
     crm_xml_add(xml_tmp, XML_ATTR_ID, tmp_id);
     free(tmp_id);
-
+	/* meta属性:containerにidから取得しておいたcontainer_idをセットする */
     attr = create_xml_node(xml_tmp, XML_CIB_TAG_NVPAIR);
     tmp_id = crm_concat(remote_name, "meta-attributes-container", '_');
     crm_xml_add(attr, XML_ATTR_ID, tmp_id);
@@ -526,7 +526,7 @@ handle_startup_fencing(pe_working_set_t *data_set, node_t *new_node)
      * exists or not separate from whether the node is unclean. */
     new_node->details->unseen = TRUE;
 }
-
+/* ノード情報を展開 */
 gboolean
 unpack_nodes(xmlNode * xml_nodes, pe_working_set_t * data_set)
 {
@@ -540,7 +540,7 @@ unpack_nodes(xmlNode * xml_nodes, pe_working_set_t * data_set)
     for (xml_obj = __xml_first_child(xml_nodes); xml_obj != NULL; xml_obj = __xml_next(xml_obj)) {
         if (crm_str_eq((const char *)xml_obj->name, XML_CIB_TAG_NODE, TRUE)) {
             new_node = NULL;
-
+			/* id,uname,type,scoreを取得 */
             id = crm_element_value(xml_obj, XML_ATTR_ID);
             uname = crm_element_value(xml_obj, XML_ATTR_UNAME);
             type = crm_element_value(xml_obj, XML_ATTR_TYPE);
@@ -551,6 +551,7 @@ unpack_nodes(xmlNode * xml_nodes, pe_working_set_t * data_set)
                 crm_config_err("Must specify id tag in <node>");
                 continue;
             }
+            /* ノード情報を生成 */
             new_node = create_node(id, uname, type, score, data_set);
 
             if (new_node == NULL) {
@@ -596,8 +597,9 @@ setup_container(resource_t * rsc, pe_working_set_t * data_set)
         }
         return;
     }
-
+	/* リソース情報のmeta属性:containerを取得する */
     container_id = g_hash_table_lookup(rsc->meta, XML_RSC_ATTR_CONTAINER);
+    
     if (container_id && safe_str_neq(container_id, rsc->id)) {
         resource_t *container = pe_find_resource(data_set->resources, container_id);
 
@@ -610,7 +612,7 @@ setup_container(resource_t * rsc, pe_working_set_t * data_set)
         }
     }
 }
-/* remoteリソース情報をノード情報に展開する */
+/* remoteリソース情報をノード情報、リソース情報に展開する */
 gboolean
 unpack_remote_nodes(xmlNode * xml_resources, pe_working_set_t * data_set)
 {
@@ -622,6 +624,7 @@ unpack_remote_nodes(xmlNode * xml_resources, pe_working_set_t * data_set)
         const char *new_node_id = NULL;
 
         /* remote rsc can be defined as primitive, or exist within the metadata of another rsc */
+		/* ocf:pacemaker:remoteリソースかどうかを判定する */
         if (xml_contains_remote_node(xml_obj)) {
             new_node_id = ID(xml_obj);
             /* This check is here to make sure we don't iterate over
@@ -632,6 +635,8 @@ unpack_remote_nodes(xmlNode * xml_resources, pe_working_set_t * data_set)
         } else {
             /* expands a metadata defined remote resource into the xml config
              * as an actual rsc primitive to be unpacked later. */
+            /* ocf:pacemaker:remoteリソースでない場合、リソースのmeta属性からremoteリソースを内部的(datasetのresroucesにも追加）に生成する */
+            /* VirtualDomainリソースによる制御が該当する */
             new_node_id = expand_remote_rsc_meta(xml_obj, xml_resources, &rsc_name_check);
         }
 
@@ -705,7 +710,7 @@ destroy_tag(gpointer data)
         free(tag);
     }
 }
-
+/* リソース情報を展開 */
 gboolean
 unpack_resources(xmlNode * xml_resources, pe_working_set_t * data_set)
 {
@@ -732,9 +737,11 @@ unpack_resources(xmlNode * xml_resources, pe_working_set_t * data_set)
 
         crm_trace("Beginning unpack... <%s id=%s... >", crm_element_name(xml_obj), ID(xml_obj));
         if (common_unpack(xml_obj, &new_rsc, NULL, data_set)) {
+			/* 展開したリソースをdata_setのresourcesにセット */
             data_set->resources = g_list_append(data_set->resources, new_rsc);
 
             if (xml_contains_remote_node(xml_obj)) {
+				/* リソースがocf:pacemaker:remoteの場合は、is_remote_nodeフラグをセット */
                 new_rsc->is_remote_node = TRUE;
             }
             print_resource(LOG_DEBUG_3, "Added ", new_rsc, FALSE);
@@ -747,7 +754,7 @@ unpack_resources(xmlNode * xml_resources, pe_working_set_t * data_set)
             }
         }
     }
-
+	/* data_set->resourceに展開した全てのリソース情報を処理する */
     for (gIter = data_set->resources; gIter != NULL; gIter = gIter->next) {
         resource_t *rsc = (resource_t *) gIter->data;
 
@@ -1563,7 +1570,7 @@ create_fake_resource(const char *rsc_id, xmlNode * rsc_entry, pe_working_set_t *
     if (!common_unpack(xml_rsc, &rsc, NULL, data_set)) {
         return NULL;
     }
-
+	/* ocf:pacemaker:remoteリソースかどうかを判定する */
     if (xml_contains_remote_node(xml_rsc)) {
         node_t *node;
 
