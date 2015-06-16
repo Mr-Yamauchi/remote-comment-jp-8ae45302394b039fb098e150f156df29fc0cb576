@@ -162,7 +162,7 @@ start_delay_helper(gpointer data)
     }
     return FALSE;
 }
-
+/* remote RAの結果処理(lrm_op_callbackを実行) */
 static void
 report_remote_ra_result(remote_ra_cmd_t * cmd)
 {
@@ -244,6 +244,7 @@ retry_start_cmd_cb(gpointer data)
     if (rc != 0) {
         cmd->rc = PCMK_OCF_UNKNOWN_ERROR;
         cmd->op_status = PCMK_LRM_OP_ERROR;
+		/* remote RAの結果処理(lrm_op_callbackを実行) */
         report_remote_ra_result(cmd);
 
         if (ra_data->cmds) {
@@ -300,7 +301,7 @@ monitor_timeout_cb(gpointer data)
             mainloop_set_trigger(ra_data->work);
         }
     }
-
+	/* remote RAの結果処理(lrm_op_callbackを実行) */
     report_remote_ra_result(cmd);
     free_cmd(cmd);
     return FALSE;
@@ -413,6 +414,7 @@ remote_lrm_op_callback(lrmd_event_data_t * op)
         }
 
         crm_debug("remote lrmd connect event matched %s action. ", cmd->action);
+        /* remote RAの結果処理(lrm_op_callbackを実行) */
         report_remote_ra_result(cmd);
         cmd_handled = TRUE;
 
@@ -430,6 +432,7 @@ remote_lrm_op_callback(lrmd_event_data_t * op)
         if (!cmd->reported_success) {
             cmd->rc = PCMK_OCF_OK;
             cmd->op_status = PCMK_LRM_OP_DONE;
+			/* remote RAの結果処理(lrm_op_callbackを実行) */
             report_remote_ra_result(cmd);
             cmd->reported_success = 1;
         }
@@ -450,6 +453,7 @@ remote_lrm_op_callback(lrmd_event_data_t * op)
         if (ra_data->active == TRUE && (cmd->cancel == FALSE)) {
             cmd->rc = PCMK_OCF_UNKNOWN_ERROR;
             cmd->op_status = PCMK_LRM_OP_ERROR;
+			/* remote RAの結果処理(lrm_op_callbackを実行) */
             report_remote_ra_result(cmd);
             crm_err("remote-node %s unexpectedly disconneced during monitor operation", lrm_state->node_name);
         }
@@ -501,7 +505,7 @@ handle_remote_ra_stop(lrm_state_t * lrm_state, remote_ra_cmd_t * cmd)
     ra_data->cmds = NULL;
     ra_data->recurring_cmds = NULL;
     ra_data->cur_cmd = NULL;
-
+	/* remote RAの結果処理(lrm_op_callbackを実行) */
     report_remote_ra_result(cmd);
 }
 /* リモートのリソースstart */
@@ -565,7 +569,8 @@ handle_remote_ra_exec(gpointer user_data)
                 cmd->rc = PCMK_OCF_UNKNOWN_ERROR;
                 cmd->op_status = PCMK_LRM_OP_ERROR;
             }
-            report_remote_ra_result(cmd);
+            /* remote RAの結果処理(lrm_op_callbackを実行) */
+	        report_remote_ra_result(cmd);
 
         } else if (!strcmp(cmd->action, "monitor")) {
 			/* アクションがmonitorの場合 */
@@ -590,6 +595,7 @@ handle_remote_ra_exec(gpointer user_data)
                 cmd->monitor_timeout_id = g_timeout_add(cmd->timeout, monitor_timeout_cb, cmd);
                 return TRUE;
             }
+            /* remote RAの結果処理(lrm_op_callbackを実行) */
             report_remote_ra_result(cmd);
 
         } else if (!strcmp(cmd->action, "stop")) {
@@ -612,6 +618,7 @@ handle_remote_ra_exec(gpointer user_data)
             ra_data->migrate_status = expect_takeover;
             cmd->rc = PCMK_OCF_OK;
             cmd->op_status = PCMK_LRM_OP_DONE;
+            /* remote RAの結果処理(lrm_op_callbackを実行) */
             report_remote_ra_result(cmd);
         }
 
@@ -721,6 +728,7 @@ fail_all_monitor_cmds(GList * list)
 
         cmd->rc = PCMK_OCF_UNKNOWN_ERROR;
         cmd->op_status = PCMK_LRM_OP_ERROR;
+		/* remote RAの結果処理(lrm_op_callbackを実行) */
         report_remote_ra_result(cmd);
 
         list = g_list_remove(list, cmd);
