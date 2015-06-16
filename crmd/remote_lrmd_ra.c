@@ -305,7 +305,7 @@ monitor_timeout_cb(gpointer data)
     free_cmd(cmd);
     return FALSE;
 }
-
+/* remoteƒm[ƒh‚Ìnode_state‚ğ¶¬‚·‚é */
 xmlNode *
 simple_remote_node_status(const char *node_name, xmlNode * parent, const char *source)
 {
@@ -313,7 +313,7 @@ simple_remote_node_status(const char *node_name, xmlNode * parent, const char *s
 
     crm_xml_add(state, XML_NODE_IS_REMOTE, "true");
     crm_xml_add(state, XML_ATTR_UUID,  node_name);
-    crm_xml_add(state, XML_ATTR_UNAME, node_name);
+    crm_xml_add(state, XML_ATTR_UNAME, node_name); /* uname‘®« */
     crm_xml_add(state, XML_ATTR_ORIGIN, source);
 
     return state;

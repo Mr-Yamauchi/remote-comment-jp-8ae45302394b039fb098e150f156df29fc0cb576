@@ -229,7 +229,7 @@ update_history_cache(lrm_state_t * lrm_state, lrmd_rsc_info_t * rsc, lrmd_event_
         entry->recurring_op_list = NULL;
     }
 }
-/* lrmdへの操作コールバック */
+/* lrmdへの操作コールバック(remote(pacemaker_remote)も含む) */
 void
 lrm_op_callback(lrmd_event_data_t * op)
 {
@@ -2066,6 +2066,7 @@ do_update_resource(lrm_state_t * lrm_state, lrmd_rsc_info_t * rsc, lrmd_event_da
         CRM_CHECK(rsc->class != NULL, crm_err("Resource %s has no value for class", op->rsc_id));
 
         /* check to see if we need to initialize remote-node related status sections */
+		/* リモートリソースのstart完了で、node_stateセクションの初期属性(unameなど)をセットする */
         if (safe_str_eq(op->op_type, "start") && op->rc == 0 && op->op_status == PCMK_LRM_OP_DONE) {
             const char *remote_node = g_hash_table_lookup(op->params, CRM_META"_remote_node");
 
